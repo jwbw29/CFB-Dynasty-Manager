@@ -176,6 +176,7 @@ const devTraitOrder: { [key: string]: number } = {
 
 const positionGroupMap: Record<string, string[]> = {
   OL: ["LT", "LG", "C", "RG", "RT", "OL"],
+  DL: ["DL", "LEDGE", "REDGE", "DT"],
   OLB: ["WILL", "SAM"],
   LB: ["WILL", "SAM", "MIKE", "LB"],
   Safeties: ["FS", "SS", "S"],
@@ -184,6 +185,7 @@ const positionGroupMap: Record<string, string[]> = {
 
 const positionGroupLabels: { value: string; label: string }[] = [
   { value: "OL", label: "OL" },
+  { value: "DL", label: "DL" },
   { value: "OLB", label: "OLB" },
   { value: "LB", label: "LB" },
   { value: "Safeties", label: "Safeties" },
