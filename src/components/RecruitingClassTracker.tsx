@@ -213,6 +213,8 @@ const calculateReturners = (
   return counts;
 };
 
+
+
 const getRowStatus = (need: number, signed: number, targeted: number) => {
   if (signed >= need) return "complete";
   if (signed + targeted >= need) return "ontrack";
@@ -237,13 +239,24 @@ const RecruitingNeedsTable = React.memo<{
     value: string | number | null,
   ) => void;
   returnerCounts: Record<string, number>;
+  rosterPlayers: Player[];
   tableType: "offensive" | "defensive";
-}>(({ title, needs, updateNeed, returnerCounts, tableType }) => (
-  <div className="w-full">
-    <div className="bg-red-500 text-white text-center py-2 font-semibold">
-      {title}
-    </div>
-    <div className="grid grid-cols-6 gap-0 border border-gray-300">
+}>(({ title, needs, updateNeed, returnerCounts, rosterPlayers, tableType }) => {
+  const [hoveredPosition, setHoveredPosition] = useState<string | null>(null);
+
+  const getPlayersForPosition = (recruitingPosition: string): Player[] => {
+    const rosterPositions = RECRUITING_POSITION_MAP[recruitingPosition] || [];
+    return rosterPlayers
+      .filter((p) => p.position && rosterPositions.includes(p.position))
+      .sort((a, b) => (parseInt(b.rating) || 0) - (parseInt(a.rating) || 0));
+  };
+
+  return (
+    <div className="w-full">
+      <div className="bg-red-500 text-white text-center py-2 font-semibold">
+        {title}
+      </div>
+                  <div className="grid grid-cols-6 gap-0 border border-gray-300">
       <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
         Position
       </div>
@@ -271,12 +284,71 @@ const RecruitingNeedsTable = React.memo<{
         return (
           <React.Fragment key={need.position}>
             <div
-              className={`p-2 text-center border-r border-b border-gray-300 flex items-center justify-center ${rowClass}`}
+              className={`p-2 text-center border-r border-b border-gray-300 flex items-center justify-center relative ${rowClass}`}
+              onMouseEnter={() => setHoveredPosition(need.position)}
+              onMouseLeave={() => setHoveredPosition(null)}
             >
-              {need.position}
+              <span className="cursor-pointer underline decoration-dotted underline-offset-2">
+                {need.position}
+              </span>
               {status === "complete" && (
                 <CheckCircle className="h-4 w-4 text-green-600 ml-2" />
               )}
+
+              {hoveredPosition === need.position && (() => {
+                const players = getPlayersForPosition(need.position);
+                const avgRating =
+                  players.length > 0
+                    ? (
+                        players.reduce(
+                          (sum, p) => sum + (parseInt(p.rating) || 0),
+                          0,
+                        ) / players.length
+                      ).toFixed(1)
+                    : null;
+
+                return (
+                  <div className="absolute left-full top-0 ml-2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl p-3 min-w-[250px] text-left">
+                    <div className="font-bold text-sm mb-2 border-b pb-1 dark:border-gray-600">
+                      {need.position} Roster
+                      {avgRating && (
+                        <span className="font-normal text-muted-foreground ml-1">
+                          (Avg: {avgRating})
+                        </span>
+                      )}
+                    </div>
+                    {players.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">
+                        No players at this position
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                        {players.map((player) => (
+                          <div
+                            key={player.id}
+                            className="text-sm flex items-start gap-2"
+                          >
+                            <span className="font-semibold text-primary min-w-[28px]">
+                              {player.rating}
+                            </span>
+                            <div className="flex-1">
+                              <span className="font-medium">{player.name}</span>
+                              <span className="text-muted-foreground ml-1 text-xs">
+                                ({player.year})
+                              </span>
+                              {player.notes && (
+                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                  {player.notes}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div
               className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
@@ -400,9 +472,10 @@ const RecruitingNeedsTable = React.memo<{
       <div className="p-2 text-center bg-gray-200 dark:bg-gray-700 font-bold">
         {needs.reduce((sum, n) => sum + n.signed, 0)}
       </div>
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 RecruitingNeedsTable.displayName = "RecruitingNeedsTable";
 
@@ -745,6 +818,7 @@ const RecruitingClassTracker: React.FC = () => {
                 needs={offensiveNeeds}
                 updateNeed={updateOffensiveNeed}
                 returnerCounts={returnerCounts}
+                rosterPlayers={rosterPlayers}
                 tableType="offensive"
               />
               <RecruitingNeedsTable
@@ -752,6 +826,7 @@ const RecruitingClassTracker: React.FC = () => {
                 needs={defensiveNeeds}
                 updateNeed={updateDefensiveNeed}
                 returnerCounts={returnerCounts}
+                rosterPlayers={rosterPlayers}
                 tableType="defensive"
               />
 
@@ -760,7 +835,7 @@ const RecruitingClassTracker: React.FC = () => {
                 <div className="bg-gray-800 text-white text-center py-2 font-semibold">
                   COMBINED TOTALS
                 </div>
-                <div className="grid grid-cols-6 gap-0 border border-gray-300">
+    <div className="grid grid-cols-6 gap-0 border border-gray-300">
                   <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium border-r border-gray-300">
                     Position
                   </div>
