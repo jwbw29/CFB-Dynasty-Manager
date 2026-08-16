@@ -105,6 +105,7 @@ const TROPHY_CATEGORIES = {
       "Isleta New Mexico Bowl",
       "Kinder’s Texas Bowl",
       "Lockheed Martin Armed Forces Bowl",
+      "Music City Bowl",
       "Myrtle Beach Bowl",
       "Outback Bowl",
       "Pop-Tarts Bowl",
@@ -316,7 +317,7 @@ const TrophyCase: React.FC = () => {
         "Go Bowling Military Bowl": "bowl",
         "Valero Alamo Bowl": "bowl",
         "Radiance Technologies Independence Bowl": "bowl",
-        "Transperfect Music City Bowl": "bowl",
+        "Liberty Mutual Music City Bowl": "bowl",
 
         "College Football Playoff National Championship": "championship",
 
