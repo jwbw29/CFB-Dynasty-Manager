@@ -1,7 +1,7 @@
 // src/components/RecruitingClassTracker.tsx
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   Card,
   CardHeader,
@@ -29,8 +29,7 @@ import {
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { useDynasty } from "@/contexts/DynastyContext";
 import { capitalizeName, formatDisplayName } from "@/utils";
-import { Recruit } from "@/types/playerTypes";
-import { generalPositions } from "@/types/playerTypes";
+import { Recruit, Player, generalPositions } from "@/types/playerTypes";
 import {
   notifySuccess,
   notifyError,
@@ -124,27 +123,95 @@ interface RecruitingNeed {
   need: number;
   signed: number;
   targeted: number;
+  returnersOverride?: number | null;
 }
 
 const offensivePositions: RecruitingNeed[] = [
-  { position: "QB", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "HB", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "WR", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "TE", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "OT", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "OG", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "C", rating: "", need: 0, signed: 0, targeted: 0 },
+  { position: "QB", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "HB", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "WR", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "TE", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "OT", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "OG", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "C", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
 ];
 
 const defensivePositions: RecruitingNeed[] = [
-  { position: "EDGE", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "DT", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "SAM/WILL", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "MIKE", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "CB", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "FS/SS", rating: "", need: 0, signed: 0, targeted: 0 },
-  { position: "K/P", rating: "", need: 0, signed: 0, targeted: 0 },
+  { position: "EDGE", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "DT", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "SAM/WILL", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "MIKE", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "CB", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "FS/SS", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  { position: "K/P", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
 ];
+
+/** Maps each recruiting board position to the roster positions that count toward it */
+const RECRUITING_POSITION_MAP: Record<string, string[]> = {
+  QB: ["QB"],
+  HB: ["RB", "FB"],
+  WR: ["WR"],
+  TE: ["TE"],
+  OT: ["LT", "RT"],
+  OG: ["LG", "RG"],
+  C: ["C"],
+  EDGE: ["LEDGE", "REDGE"],
+  DT: ["DT"],
+  "SAM/WILL": ["SAM", "WILL"],
+  MIKE: ["MIKE"],
+  CB: ["CB"],
+  "FS/SS": ["FS", "SS"],
+  "K/P": ["K", "P"],
+};
+
+/**
+ * Calculates how many roster players will return next year at each recruiting position.
+ *
+ * A player is a "returner" if they are NOT graduating and NOT leaving:
+ * - EXCLUDE: year === "SR (RS)" (graduating redshirt senior)
+ * - EXCLUDE: year === "SR" AND isRedshirted === false (graduating senior)
+ * - INCLUDE: year === "SR" AND isRedshirted === true (redshirting senior, returns as SR(RS))
+ * - INCLUDE: all other year values (FR, FR(RS), SO, SO(RS), JR, JR(RS), TR)
+ * - EXCLUDE: isTransferring === true (leaving via transfer portal)
+ * - EXCLUDE: isDrafted === true (leaving for NFL)
+ * - SKIP: players with empty/missing position or year fields
+ *
+ * @param players - The full roster array from localStorage
+ * @param positionMap - Maps recruiting positions to roster position arrays
+ * @returns Record keyed by recruiting position with count of returners
+ */
+const calculateReturners = (
+  players: Player[],
+  positionMap: Record<string, string[]>,
+): Record<string, number> => {
+  // Filter to only returning players
+  const returners = players.filter((player) => {
+    // Skip players with missing data
+    if (!player.position || !player.year) return false;
+
+    // Exclude players leaving via transfer or draft
+    if (player.isTransferring || player.isDrafted) return false;
+
+    // SR (RS) always graduates — exclude
+    if (player.year === "SR (RS)") return false;
+
+    // SR who is NOT redshirting this season — graduating, exclude
+    if (player.year === "SR" && !player.isRedshirted) return false;
+
+    // All others return (including SR + isRedshirted=true, FR, SO, JR, TR, etc.)
+    return true;
+  });
+
+  // Count returners per recruiting position using the position map
+  const counts: Record<string, number> = {};
+  for (const [recruitingPos, rosterPositions] of Object.entries(positionMap)) {
+    counts[recruitingPos] = returners.filter((player) =>
+      rosterPositions.includes(player.position),
+    ).length;
+  }
+
+  return counts;
+};
 
 const getRowStatus = (need: number, signed: number, targeted: number) => {
   if (signed >= need) return "complete";
@@ -166,18 +233,22 @@ const RecruitingNeedsTable = React.memo<{
   needs: RecruitingNeed[];
   updateNeed: (
     position: string,
-    field: "rating" | "need" | "signed" | "targeted",
-    value: string | number,
+    field: "rating" | "need" | "signed" | "targeted" | "returnersOverride",
+    value: string | number | null,
   ) => void;
+  returnerCounts: Record<string, number>;
   tableType: "offensive" | "defensive";
-}>(({ title, needs, updateNeed, tableType }) => (
+}>(({ title, needs, updateNeed, returnerCounts, tableType }) => (
   <div className="w-full">
     <div className="bg-red-500 text-white text-center py-2 font-semibold">
       {title}
     </div>
-    <div className="grid grid-cols-5 gap-0 border border-gray-300">
+    <div className="grid grid-cols-6 gap-0 border border-gray-300">
       <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
         Position
+      </div>
+      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
+        Returners
       </div>
       <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
         Priority
@@ -186,10 +257,10 @@ const RecruitingNeedsTable = React.memo<{
         Need
       </div>
       <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
-        Signed
+        Targeted
       </div>
       <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium">
-        Targeted
+        Signed
       </div>
 
       {needs.map((need, positionIndex) => {
@@ -211,6 +282,27 @@ const RecruitingNeedsTable = React.memo<{
               className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
             >
               <Input
+                key={`${need.position}-returners`}
+                type="number"
+                value={need.returnersOverride != null ? need.returnersOverride : ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateNeed(
+                    need.position,
+                    "returnersOverride",
+                    val === "" ? null : parseInt(val) || 0,
+                  );
+                }}
+                className="w-full text-center border-0 bg-transparent p-1 placeholder:text-muted-foreground"
+                placeholder={String(returnerCounts[need.position] ?? 0)}
+                min="0"
+                tabIndex={getTabIndex(tableType, positionIndex, 1)}
+              />
+            </div>
+            <div
+              className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
+            >
+              <Input
                 key={`${need.position}-rating`}
                 value={need.rating}
                 onChange={(e) =>
@@ -218,7 +310,7 @@ const RecruitingNeedsTable = React.memo<{
                 }
                 className="w-full text-center border-0 bg-transparent p-1"
                 placeholder="P1, P2, etc"
-                tabIndex={getTabIndex(tableType, positionIndex, 1)}
+                tabIndex={getTabIndex(tableType, positionIndex, 2)}
               />
             </div>
             <div
@@ -239,32 +331,11 @@ const RecruitingNeedsTable = React.memo<{
                 }
                 className="w-full text-center border-0 bg-transparent p-1"
                 min="0"
-                tabIndex={getTabIndex(tableType, positionIndex, 2)}
-              />
-            </div>
-            <div
-              className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
-                status === "urgent" ? "bg-red-100 dark:bg-red-900" : ""
-              }`}
-            >
-              <Input
-                key={`${need.position}-signed`}
-                type="number"
-                value={need.signed || ""}
-                onChange={(e) =>
-                  updateNeed(
-                    need.position,
-                    "signed",
-                    parseInt(e.target.value) || 0,
-                  )
-                }
-                className="w-full text-center border-0 bg-transparent p-1"
-                min="0"
                 tabIndex={getTabIndex(tableType, positionIndex, 3)}
               />
             </div>
             <div
-              className={`p-2 border-b border-gray-300 ${rowClass} ${
+              className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
                 status === "urgent" ? "bg-red-100 dark:bg-red-900" : ""
               }`}
             >
@@ -284,23 +355,50 @@ const RecruitingNeedsTable = React.memo<{
                 tabIndex={getTabIndex(tableType, positionIndex, 4)}
               />
             </div>
+            <div
+              className={`p-2 border-b border-gray-300 ${rowClass} ${
+                status === "urgent" ? "bg-red-100 dark:bg-red-900" : ""
+              }`}
+            >
+              <Input
+                key={`${need.position}-signed`}
+                type="number"
+                value={need.signed || ""}
+                onChange={(e) =>
+                  updateNeed(
+                    need.position,
+                    "signed",
+                    parseInt(e.target.value) || 0,
+                  )
+                }
+                className="w-full text-center border-0 bg-transparent p-1"
+                min="0"
+                tabIndex={getTabIndex(tableType, positionIndex, 5)}
+              />
+            </div>
           </React.Fragment>
         );
       })}
 
-      {/* Totals row — view-only accumulation of Need, Signed, and Targeted columns */}
       <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
         TOTAL
+      </div>
+      <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
+        {needs.reduce(
+          (sum, n) =>
+            sum + (n.returnersOverride ?? (returnerCounts[n.position] ?? 0)),
+          0,
+        )}
       </div>
       <div className="p-2 border-r border-gray-300 bg-gray-200 dark:bg-gray-700" />
       <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
         {needs.reduce((sum, n) => sum + n.need, 0)}
       </div>
       <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
-        {needs.reduce((sum, n) => sum + n.signed, 0)}
+        {needs.reduce((sum, n) => sum + n.targeted, 0)}
       </div>
       <div className="p-2 text-center bg-gray-200 dark:bg-gray-700 font-bold">
-        {needs.reduce((sum, n) => sum + n.targeted, 0)}
+        {needs.reduce((sum, n) => sum + n.signed, 0)}
       </div>
     </div>
   </div>
@@ -340,6 +438,7 @@ const sortRecruitsByStars = (recruits: Recruit[]): Recruit[] => {
 
 const RecruitingClassTracker: React.FC = () => {
   const { currentDynastyId } = useDynasty();
+  const [rosterPlayers] = useLocalStorage<Player[]>("players", []);
   const [currentYear] = useLocalStorage<number>(
     "currentYear",
     new Date().getFullYear(),
@@ -378,6 +477,11 @@ const RecruitingClassTracker: React.FC = () => {
     allRecruits.filter((recruit) => recruit.recruitedYear === selectedYear),
   );
 
+  const returnerCounts = useMemo(
+    () => calculateReturners(rosterPlayers, RECRUITING_POSITION_MAP),
+    [rosterPlayers],
+  );
+
   // Debounced save notification for recruiting needs
   const debouncedSaveNotification = useCallback(() => {
     const timeoutId = setTimeout(() => {
@@ -390,8 +494,8 @@ const RecruitingClassTracker: React.FC = () => {
   const updateOffensiveNeed = useCallback(
     (
       position: string,
-      field: "rating" | "need" | "signed" | "targeted",
-      value: string | number,
+      field: "rating" | "need" | "signed" | "targeted" | "returnersOverride",
+      value: string | number | null,
     ) => {
       setOffensiveNeeds((prev) =>
         prev.map((need) =>
@@ -407,8 +511,8 @@ const RecruitingClassTracker: React.FC = () => {
   const updateDefensiveNeed = useCallback(
     (
       position: string,
-      field: "rating" | "need" | "signed" | "targeted",
-      value: string | number,
+      field: "rating" | "need" | "signed" | "targeted" | "returnersOverride",
+      value: string | number | null,
     ) => {
       setDefensiveNeeds((prev) =>
         prev.map((need) =>
@@ -640,12 +744,14 @@ const RecruitingClassTracker: React.FC = () => {
                 title="OFFENSIVE NEEDS"
                 needs={offensiveNeeds}
                 updateNeed={updateOffensiveNeed}
+                returnerCounts={returnerCounts}
                 tableType="offensive"
               />
               <RecruitingNeedsTable
                 title="DEFENSIVE NEEDS"
                 needs={defensiveNeeds}
                 updateNeed={updateDefensiveNeed}
+                returnerCounts={returnerCounts}
                 tableType="defensive"
               />
 
@@ -654,9 +760,12 @@ const RecruitingClassTracker: React.FC = () => {
                 <div className="bg-gray-800 text-white text-center py-2 font-semibold">
                   COMBINED TOTALS
                 </div>
-                <div className="grid grid-cols-5 gap-0 border border-gray-300">
+                <div className="grid grid-cols-6 gap-0 border border-gray-300">
                   <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium border-r border-gray-300">
                     Position
+                  </div>
+                  <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium border-r border-gray-300">
+                    Returners
                   </div>
                   <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium border-r border-gray-300">
                     Priority
@@ -665,23 +774,30 @@ const RecruitingClassTracker: React.FC = () => {
                     Need
                   </div>
                   <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium border-r border-gray-300">
-                    Signed
-                  </div>
-                  <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium">
                     Targeted
                   </div>
+                  <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium">
+                    Signed
+                  </div>
+                  {/* Data row */}
                   <div className="p-2 text-center border-r border-gray-300 bg-gray-100 dark:bg-gray-800 font-bold">
                     ALL
+                  </div>
+                  <div className="p-2 text-center border-r border-gray-300 bg-gray-100 dark:bg-gray-800 font-bold">
+                    {[...offensiveNeeds, ...defensiveNeeds].reduce(
+                      (sum, n) => sum + (n.returnersOverride ?? (returnerCounts[n.position] ?? 0)),
+                      0,
+                    )}
                   </div>
                   <div className="p-2 border-r border-gray-300 bg-gray-100 dark:bg-gray-800" />
                   <div className="p-2 text-center border-r border-gray-300 bg-gray-100 dark:bg-gray-800 font-bold">
                     {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.need, 0)}
                   </div>
                   <div className="p-2 text-center border-r border-gray-300 bg-gray-100 dark:bg-gray-800 font-bold">
-                    {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.signed, 0)}
+                    {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.targeted, 0)}
                   </div>
                   <div className="p-2 text-center bg-gray-100 dark:bg-gray-800 font-bold">
-                    {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.targeted, 0)}
+                    {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.signed, 0)}
                   </div>
                 </div>
               </div>
