@@ -244,10 +244,24 @@ const RecruitingNeedsTable = React.memo<{
 }>(({ title, needs, updateNeed, returnerCounts, rosterPlayers, tableType }) => {
   const [hoveredPosition, setHoveredPosition] = useState<string | null>(null);
 
+  /** Gets only returning roster players matching a recruiting position group */
   const getPlayersForPosition = (recruitingPosition: string): Player[] => {
     const rosterPositions = RECRUITING_POSITION_MAP[recruitingPosition] || [];
     return rosterPlayers
-      .filter((p) => p.position && rosterPositions.includes(p.position))
+      .filter((p) => {
+        // Must match this position group
+        if (!p.position || !rosterPositions.includes(p.position)) return false;
+        // Must have a valid year
+        if (!p.year) return false;
+        // Exclude players leaving via transfer or draft
+        if (p.isTransferring || p.isDrafted) return false;
+        // SR (RS) always graduates
+        if (p.year === "SR (RS)") return false;
+        // SR who is NOT redshirting this season — graduating
+        if (p.year === "SR" && !p.isRedshirted) return false;
+        // All others are returners
+        return true;
+      })
       .sort((a, b) => (parseInt(b.rating) || 0) - (parseInt(a.rating) || 0));
   };
 
