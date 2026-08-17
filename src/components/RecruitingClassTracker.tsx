@@ -501,7 +501,9 @@ const RecruitingNeedsTable = React.memo<{
                 />
               </div>
               <div
-                className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
+                className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
+                  need.rating.toLowerCase().includes("p1") ? "ring-2 ring-inset ring-red-500" : ""
+                }`}
               >
                 <Input
                   key={`${need.position}-rating`}
