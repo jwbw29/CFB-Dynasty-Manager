@@ -127,23 +127,121 @@ interface RecruitingNeed {
 }
 
 const offensivePositions: RecruitingNeed[] = [
-  { position: "QB", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "HB", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "WR", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "TE", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "OT", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "OG", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "C", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  {
+    position: "QB",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "HB",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "WR",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "TE",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "OT",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "OG",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "C",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
 ];
 
 const defensivePositions: RecruitingNeed[] = [
-  { position: "EDGE", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "DT", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "SAM/WILL", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "MIKE", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "CB", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "FS/SS", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
-  { position: "K/P", rating: "", need: 0, signed: 0, targeted: 0, returnersOverride: null },
+  {
+    position: "EDGE",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "DT",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "OLB",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "MIKE",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "CB",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "FS/SS",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
+  {
+    position: "K/P",
+    rating: "",
+    need: 0,
+    signed: 0,
+    targeted: 0,
+    returnersOverride: null,
+  },
 ];
 
 /** Maps each recruiting board position to the roster positions that count toward it */
@@ -157,7 +255,7 @@ const RECRUITING_POSITION_MAP: Record<string, string[]> = {
   C: ["C"],
   EDGE: ["LEDGE", "REDGE"],
   DT: ["DT"],
-  "SAM/WILL": ["SAM", "WILL"],
+  OLB: ["SAM", "WILL"],
   MIKE: ["MIKE"],
   CB: ["CB"],
   "FS/SS": ["FS", "SS"],
@@ -212,8 +310,6 @@ const calculateReturners = (
 
   return counts;
 };
-
-
 
 const getRowStatus = (need: number, signed: number, targeted: number) => {
   if (signed >= need) return "complete";
@@ -270,222 +366,241 @@ const RecruitingNeedsTable = React.memo<{
       <div className="bg-red-500 text-white text-center py-2 font-semibold">
         {title}
       </div>
-                  <div className="grid grid-cols-6 gap-0 border border-gray-300">
-      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
-        Position
-      </div>
-      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
-        Returners
-      </div>
-      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
-        Priority
-      </div>
-      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
-        Need
-      </div>
-      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
-        Targeted
-      </div>
-      <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium">
-        Signed
-      </div>
+      <div className="grid grid-cols-6 gap-0 border border-gray-300">
+        <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
+          Position
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
+          Returners
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
+          Priority
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
+          Need
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium border-r border-gray-300">
+          Targeted
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-800 p-2 text-center font-medium">
+          Signed
+        </div>
 
-      {needs.map((need, positionIndex) => {
-        const status = getRowStatus(need.need, need.signed, need.targeted);
-        const rowClass =
-          status === "complete" ? "bg-green-100 dark:bg-green-900" : "";
+        {needs.map((need, positionIndex) => {
+          const status = getRowStatus(need.need, need.signed, need.targeted);
+          const rowClass =
+            status === "complete" ? "bg-green-100 dark:bg-green-900" : "";
 
-        return (
-          <React.Fragment key={need.position}>
-            <div
-              className={`p-2 text-center border-r border-b border-gray-300 flex items-center justify-center relative ${rowClass}`}
-              onMouseEnter={() => setHoveredPosition(need.position)}
-              onMouseLeave={() => setHoveredPosition(null)}
-            >
-              <span className="cursor-pointer underline decoration-dotted underline-offset-2">
-                {need.position}
-              </span>
-              {status === "complete" && (
-                <CheckCircle className="h-4 w-4 text-green-600 ml-2" />
-              )}
+          return (
+            <React.Fragment key={need.position}>
+              <div
+                className={`p-2 text-center border-r border-b border-gray-300 flex items-center justify-center relative ${rowClass}`}
+                onMouseEnter={() => setHoveredPosition(need.position)}
+                onMouseLeave={() => setHoveredPosition(null)}
+              >
+                <span className="cursor-pointer">
+                  {need.position}
+                  {(() => {
+                    const players = getPlayersForPosition(need.position);
+                    if (players.length === 0) return null;
+                    const avg =
+                      players.reduce(
+                        (sum, p) => sum + (parseInt(p.rating) || 0),
+                        0,
+                      ) / players.length;
+                    return (
+                      <span className="text-muted-foreground font-normal">
+                        {" | " + avg.toFixed(1)}
+                      </span>
+                    );
+                  })()}
+                </span>
+                {status === "complete" && (
+                  <CheckCircle className="h-4 w-4 text-green-600 ml-2" />
+                )}
 
-              {hoveredPosition === need.position && (() => {
-                const players = getPlayersForPosition(need.position);
-                const avgRating =
-                  players.length > 0
-                    ? (
-                        players.reduce(
-                          (sum, p) => sum + (parseInt(p.rating) || 0),
-                          0,
-                        ) / players.length
-                      ).toFixed(1)
-                    : null;
+                {hoveredPosition === need.position &&
+                  (() => {
+                    const players = getPlayersForPosition(need.position);
+                    const avgRating =
+                      players.length > 0
+                        ? (
+                            players.reduce(
+                              (sum, p) => sum + (parseInt(p.rating) || 0),
+                              0,
+                            ) / players.length
+                          ).toFixed(1)
+                        : null;
 
-                return (
-                  <div className="absolute left-full top-0 ml-2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl p-3 min-w-[250px] text-left">
-                    <div className="font-bold text-sm mb-2 border-b pb-1 dark:border-gray-600">
-                      {need.position} Roster
-                      {avgRating && (
-                        <span className="font-normal text-muted-foreground ml-1">
-                          (Avg: {avgRating})
-                        </span>
-                      )}
-                    </div>
-                    {players.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">
-                        No players at this position
-                      </p>
-                    ) : (
-                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-                        {players.map((player) => (
-                          <div
-                            key={player.id}
-                            className="text-sm flex items-start gap-2"
-                          >
-                            <span className="font-semibold text-primary min-w-[28px]">
-                              {player.rating}
+                    return (
+                      <div className="absolute left-full top-0 ml-2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl p-3 min-w-[250px] text-left">
+                        <div className="font-bold text-sm mb-2 border-b pb-1 dark:border-gray-600">
+                          {need.position} Roster
+                          {avgRating && (
+                            <span className="font-normal text-muted-foreground ml-1">
+                              (Avg: {avgRating})
                             </span>
-                            <div className="flex-1">
-                              <span className="font-medium">{player.name}</span>
-                              <span className="text-muted-foreground ml-1 text-xs">
-                                ({player.year})
-                              </span>
-                              {player.notes && (
-                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                  {player.notes}
-                                </p>
-                              )}
-                            </div>
+                          )}
+                        </div>
+                        {players.length === 0 ? (
+                          <p className="text-sm text-muted-foreground italic">
+                            No players at this position
+                          </p>
+                        ) : (
+                          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                            {players.map((player) => (
+                              <div
+                                key={player.id}
+                                className="text-sm flex items-start gap-2"
+                              >
+                                <span className="font-semibold text-primary min-w-[28px]">
+                                  {player.rating}
+                                </span>
+                                <div className="flex-1">
+                                  <span className="font-medium">
+                                    {player.name}
+                                  </span>
+                                  <span className="text-muted-foreground ml-1 text-xs">
+                                    ({player.year})
+                                  </span>
+                                  {player.notes && (
+                                    <p className="text-xs text-muted-foreground mt-0.5 break-words whitespace-normal">
+                                      {player.notes}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-            <div
-              className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
-            >
-              <Input
-                key={`${need.position}-returners`}
-                type="number"
-                value={need.returnersOverride != null ? need.returnersOverride : ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  updateNeed(
-                    need.position,
-                    "returnersOverride",
-                    val === "" ? null : parseInt(val) || 0,
-                  );
-                }}
-                className="w-full text-center border-0 bg-transparent p-1 placeholder:text-muted-foreground"
-                placeholder={String(returnerCounts[need.position] ?? 0)}
-                min="0"
-                tabIndex={getTabIndex(tableType, positionIndex, 1)}
-              />
-            </div>
-            <div
-              className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
-            >
-              <Input
-                key={`${need.position}-rating`}
-                value={need.rating}
-                onChange={(e) =>
-                  updateNeed(need.position, "rating", e.target.value)
-                }
-                className="w-full text-center border-0 bg-transparent p-1"
-                placeholder="P1, P2, etc"
-                tabIndex={getTabIndex(tableType, positionIndex, 2)}
-              />
-            </div>
-            <div
-              className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
-                status === "ontrack" ? "bg-yellow-100 dark:bg-yellow-900" : ""
-              }`}
-            >
-              <Input
-                key={`${need.position}-need`}
-                type="number"
-                value={need.need || ""}
-                onChange={(e) =>
-                  updateNeed(
-                    need.position,
-                    "need",
-                    parseInt(e.target.value) || 0,
-                  )
-                }
-                className="w-full text-center border-0 bg-transparent p-1"
-                min="0"
-                tabIndex={getTabIndex(tableType, positionIndex, 3)}
-              />
-            </div>
-            <div
-              className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
-                status === "urgent" ? "bg-red-100 dark:bg-red-900" : ""
-              }`}
-            >
-              <Input
-                key={`${need.position}-targeted`}
-                type="number"
-                value={need.targeted || ""}
-                onChange={(e) =>
-                  updateNeed(
-                    need.position,
-                    "targeted",
-                    parseInt(e.target.value) || 0,
-                  )
-                }
-                className="w-full text-center border-0 bg-transparent p-1"
-                min="0"
-                tabIndex={getTabIndex(tableType, positionIndex, 4)}
-              />
-            </div>
-            <div
-              className={`p-2 border-b border-gray-300 ${rowClass} ${
-                status === "urgent" ? "bg-red-100 dark:bg-red-900" : ""
-              }`}
-            >
-              <Input
-                key={`${need.position}-signed`}
-                type="number"
-                value={need.signed || ""}
-                onChange={(e) =>
-                  updateNeed(
-                    need.position,
-                    "signed",
-                    parseInt(e.target.value) || 0,
-                  )
-                }
-                className="w-full text-center border-0 bg-transparent p-1"
-                min="0"
-                tabIndex={getTabIndex(tableType, positionIndex, 5)}
-              />
-            </div>
-          </React.Fragment>
-        );
-      })}
+                    );
+                  })()}
+              </div>
+              <div
+                className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
+              >
+                <Input
+                  key={`${need.position}-returners`}
+                  type="number"
+                  value={
+                    need.returnersOverride != null ? need.returnersOverride : ""
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateNeed(
+                      need.position,
+                      "returnersOverride",
+                      val === "" ? null : parseInt(val) || 0,
+                    );
+                  }}
+                  className="w-full text-center border-0 bg-transparent p-1 placeholder:text-muted-foreground"
+                  placeholder={String(returnerCounts[need.position] ?? 0)}
+                  min="0"
+                  tabIndex={getTabIndex(tableType, positionIndex, 1)}
+                />
+              </div>
+              <div
+                className={`p-2 border-r border-b border-gray-300 ${rowClass}`}
+              >
+                <Input
+                  key={`${need.position}-rating`}
+                  value={need.rating}
+                  onChange={(e) =>
+                    updateNeed(need.position, "rating", e.target.value)
+                  }
+                  className="w-full text-center border-0 bg-transparent p-1"
+                  placeholder="P1, P2, etc"
+                  tabIndex={getTabIndex(tableType, positionIndex, 2)}
+                />
+              </div>
+              <div
+                className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
+                  status === "ontrack" ? "bg-yellow-100 dark:bg-yellow-900" : ""
+                }`}
+              >
+                <Input
+                  key={`${need.position}-need`}
+                  type="number"
+                  value={need.need || ""}
+                  onChange={(e) =>
+                    updateNeed(
+                      need.position,
+                      "need",
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
+                  className="w-full text-center border-0 bg-transparent p-1"
+                  min="0"
+                  tabIndex={getTabIndex(tableType, positionIndex, 3)}
+                />
+              </div>
+              <div
+                className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
+                  status === "urgent" ? "bg-red-100 dark:bg-red-900" : ""
+                }`}
+              >
+                <Input
+                  key={`${need.position}-targeted`}
+                  type="number"
+                  value={need.targeted || ""}
+                  onChange={(e) =>
+                    updateNeed(
+                      need.position,
+                      "targeted",
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
+                  className="w-full text-center border-0 bg-transparent p-1"
+                  min="0"
+                  tabIndex={getTabIndex(tableType, positionIndex, 4)}
+                />
+              </div>
+              <div
+                className={`p-2 border-b border-gray-300 ${rowClass} ${
+                  status === "urgent" ? "bg-red-100 dark:bg-red-900" : ""
+                }`}
+              >
+                <Input
+                  key={`${need.position}-signed`}
+                  type="number"
+                  value={need.signed || ""}
+                  onChange={(e) =>
+                    updateNeed(
+                      need.position,
+                      "signed",
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
+                  className="w-full text-center border-0 bg-transparent p-1"
+                  min="0"
+                  tabIndex={getTabIndex(tableType, positionIndex, 5)}
+                />
+              </div>
+            </React.Fragment>
+          );
+        })}
 
-      <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
-        TOTAL
-      </div>
-      <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
-        {needs.reduce(
-          (sum, n) =>
-            sum + (n.returnersOverride ?? (returnerCounts[n.position] ?? 0)),
-          0,
-        )}
-      </div>
-      <div className="p-2 border-r border-gray-300 bg-gray-200 dark:bg-gray-700" />
-      <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
-        {needs.reduce((sum, n) => sum + n.need, 0)}
-      </div>
-      <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
-        {needs.reduce((sum, n) => sum + n.targeted, 0)}
-      </div>
-      <div className="p-2 text-center bg-gray-200 dark:bg-gray-700 font-bold">
-        {needs.reduce((sum, n) => sum + n.signed, 0)}
-      </div>
+        <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
+          TOTAL
+        </div>
+        <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
+          {needs.reduce(
+            (sum, n) =>
+              sum + (n.returnersOverride ?? returnerCounts[n.position] ?? 0),
+            0,
+          )}
+        </div>
+        <div className="p-2 border-r border-gray-300 bg-gray-200 dark:bg-gray-700" />
+        <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
+          {needs.reduce((sum, n) => sum + n.need, 0)}
+        </div>
+        <div className="p-2 text-center border-r border-gray-300 bg-gray-200 dark:bg-gray-700 font-bold">
+          {needs.reduce((sum, n) => sum + n.targeted, 0)}
+        </div>
+        <div className="p-2 text-center bg-gray-200 dark:bg-gray-700 font-bold">
+          {needs.reduce((sum, n) => sum + n.signed, 0)}
+        </div>
       </div>
     </div>
   );
@@ -849,7 +964,7 @@ const RecruitingClassTracker: React.FC = () => {
                 <div className="bg-gray-800 text-white text-center py-2 font-semibold">
                   COMBINED TOTALS
                 </div>
-    <div className="grid grid-cols-6 gap-0 border border-gray-300">
+                <div className="grid grid-cols-6 gap-0 border border-gray-300">
                   <div className="bg-gray-200 dark:bg-gray-700 p-2 text-center font-medium border-r border-gray-300">
                     Position
                   </div>
@@ -874,19 +989,32 @@ const RecruitingClassTracker: React.FC = () => {
                   </div>
                   <div className="p-2 text-center border-r border-gray-300 bg-gray-100 dark:bg-gray-800 font-bold">
                     {[...offensiveNeeds, ...defensiveNeeds].reduce(
-                      (sum, n) => sum + (n.returnersOverride ?? (returnerCounts[n.position] ?? 0)),
+                      (sum, n) =>
+                        sum +
+                        (n.returnersOverride ??
+                          returnerCounts[n.position] ??
+                          0),
                       0,
                     )}
                   </div>
                   <div className="p-2 border-r border-gray-300 bg-gray-100 dark:bg-gray-800" />
                   <div className="p-2 text-center border-r border-gray-300 bg-gray-100 dark:bg-gray-800 font-bold">
-                    {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.need, 0)}
+                    {[...offensiveNeeds, ...defensiveNeeds].reduce(
+                      (sum, n) => sum + n.need,
+                      0,
+                    )}
                   </div>
                   <div className="p-2 text-center border-r border-gray-300 bg-gray-100 dark:bg-gray-800 font-bold">
-                    {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.targeted, 0)}
+                    {[...offensiveNeeds, ...defensiveNeeds].reduce(
+                      (sum, n) => sum + n.targeted,
+                      0,
+                    )}
                   </div>
                   <div className="p-2 text-center bg-gray-100 dark:bg-gray-800 font-bold">
-                    {[...offensiveNeeds, ...defensiveNeeds].reduce((sum, n) => sum + n.signed, 0)}
+                    {[...offensiveNeeds, ...defensiveNeeds].reduce(
+                      (sum, n) => sum + n.signed,
+                      0,
+                    )}
                   </div>
                 </div>
               </div>
@@ -1045,7 +1173,9 @@ const RecruitingClassTracker: React.FC = () => {
             <tbody>
               {recruitsForSelectedYear.map((recruit) => (
                 <tr key={recruit.id}>
-                  <td className="text-center">{formatDisplayName(recruit.name)}</td>
+                  <td className="text-center">
+                    {formatDisplayName(recruit.name)}
+                  </td>
                   <td className="text-center">{recruit.stars} ⭐</td>
                   <td className="text-center">{recruit.position}</td>
                   <td className="text-center">{recruit.state}</td>
@@ -1109,7 +1239,8 @@ const RecruitingClassTracker: React.FC = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Remove Player</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to remove {formatDisplayName(recruit.name)}?
+                              Are you sure you want to remove{" "}
+                              {formatDisplayName(recruit.name)}?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
