@@ -55,6 +55,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import {
+  OFFENSIVE_TEAM_PLAYBOOKS,
+  ALTERNATE_OFFENSE_PLAYBOOKS,
+  DEFENSIVE_PLAYBOOKS,
+  OFFENSIVE_POSITIONS,
+  DEFENSIVE_POSITIONS,
+  ARCHETYPE_MAP,
+} from "@/data/recruitingBlueprint";
+import { ArchetypeSelector } from "@/components/ArchetypeSelector";
 
 interface DevTraitBadgeProps {
   trait: "Normal" | "Impact" | "Star" | "Elite";
@@ -676,6 +685,29 @@ const RecruitingClassTracker: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [isNeedsExpanded, setIsNeedsExpanded] = useState<boolean>(false);
 
+  // Recruiting Blueprint feature state
+  const [isBlueprintExpanded, setIsBlueprintExpanded] = useState<boolean>(false);
+  // Selected offensive playbook for the recruiting blueprint
+  const [offensePlaybook, setOffensePlaybook] = useLocalStorage<string>(
+    currentDynastyId ? `offensePlaybook_${currentDynastyId}` : "offensePlaybook",
+    "",
+  );
+  // Selected defensive playbook for the recruiting blueprint
+  const [defensePlaybook, setDefensePlaybook] = useLocalStorage<string>(
+    currentDynastyId ? `defensePlaybook_${currentDynastyId}` : "defensePlaybook",
+    "",
+  );
+  // Maps offensive positions to selected archetypes for blueprint targeting
+  const [offenseBlueprintArchetypes, setOffenseBlueprintArchetypes] = useLocalStorage<Record<string, string[]>>(
+    currentDynastyId ? `offenseBlueprintArchetypes_${currentDynastyId}` : "offenseBlueprintArchetypes",
+    {},
+  );
+  // Maps defensive positions to selected archetypes for blueprint targeting
+  const [defenseBlueprintArchetypes, setDefenseBlueprintArchetypes] = useLocalStorage<Record<string, string[]>>(
+    currentDynastyId ? `defenseBlueprintArchetypes_${currentDynastyId}` : "defenseBlueprintArchetypes",
+    {},
+  );
+
   // Apply sorting to displayed recruits
   const recruitsForSelectedYear = sortRecruitsByStars(
     allRecruits.filter((recruit) => recruit.recruitedYear === selectedYear),
@@ -831,98 +863,197 @@ const RecruitingClassTracker: React.FC = () => {
     notifySuccess("Recruit marked as hard commit");
   };
 
-  const offensiveArchetypes = [
-    { position: "QB", archetype: "Improviser / Dual Threat" },
-    {
-      position: "HB",
-      archetype: "Backfield Threat -> Elusive Bruiser -> East/West Playmaker",
+  /** Add an archetype to a position's list in the offensive blueprint */
+  const addOffenseArchetype = useCallback(
+    (position: string, archetype: string) => {
+      setOffenseBlueprintArchetypes((prev) => ({
+        ...prev,
+        [position]: [...(prev[position] || []), archetype],
+      }));
     },
-    {
-      position: "WR",
-      archetype: "Speedster + Route Artist + Elusive Route Runner",
-    },
-    { position: "TE", archetype: "Possession -> Vertical Threat -> Gritty" },
-    { position: "OT", archetype: "Pass Pro -> Agile" },
-    { position: "OG", archetype: "Pass Pro -> Agile" },
-    { position: "C", archetype: "Pass Pro -> Agile" },
-  ];
+    [setOffenseBlueprintArchetypes],
+  );
 
-  const defensiveArchetypes = [
-    { position: "EDGE", archetype: "Speed Rusher + Power Rusher" },
-    { position: "DT", archetype: "Interior Disruptor + Gap Specialist" },
-    { position: "SAM", archetype: "Thumper" },
-    { position: "MIKE", archetype: "Field General / Signal Caller" },
-    { position: "WILL", archetype: "Lurker -> Thumper" },
-    { position: "CB1", archetype: "Bump & Run" },
-    { position: "Slot CB", archetype: "Field/Zone" },
-    { position: "SS", archetype: "Box Specialist" },
-    { position: "FS", archetype: "Coverage Specialist" },
-  ];
+  /** Remove an archetype from a position's list in the offensive blueprint */
+  const removeOffenseArchetype = useCallback(
+    (position: string, archetype: string) => {
+      setOffenseBlueprintArchetypes((prev) => ({
+        ...prev,
+        [position]: (prev[position] || []).filter((a) => a !== archetype),
+      }));
+    },
+    [setOffenseBlueprintArchetypes],
+  );
+
+  /** Add an archetype to a position's list in the defensive blueprint */
+  const addDefenseArchetype = useCallback(
+    (position: string, archetype: string) => {
+      setDefenseBlueprintArchetypes((prev) => ({
+        ...prev,
+        [position]: [...(prev[position] || []), archetype],
+      }));
+    },
+    [setDefenseBlueprintArchetypes],
+  );
+
+  /** Remove an archetype from a position's list in the defensive blueprint */
+  const removeDefenseArchetype = useCallback(
+    (position: string, archetype: string) => {
+      setDefenseBlueprintArchetypes((prev) => ({
+        ...prev,
+        [position]: (prev[position] || []).filter((a) => a !== archetype),
+      }));
+    },
+    [setDefenseBlueprintArchetypes],
+  );
 
   return (
     <div className="space-y-8">
       {/* Hero Header */}
       <HeroHeader title="Recruiting Class Tracker" />
 
-      {/* Recruiting Key */}
-      <Card className="flex gap-4 p-4">
-        {/* Offensive Positions */}
-        <Card className="flex flex-col w-full p-4">
-          {/* Card Title & Description */}
-          <CardHeader>
-            <CardTitle>Offense</CardTitle>
+      {/* Recruiting Blueprint — collapsible accordion matching Recruiting Needs Board style */}
+      <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
+        <div
+          className="bg-gradient-to-r from-primary to-primary/90 p-6 cursor-pointer flex flex-row items-center justify-between hover:from-primary/80 hover:to-primary/70 transition-all"
+          onClick={() => setIsBlueprintExpanded(!isBlueprintExpanded)}
+        >
+          <span className="text-2xl font-black text-white">
+            Recruiting Blueprint
+          </span>
+          {isBlueprintExpanded ? (
+            <ChevronUp className="h-6 w-6 text-white" />
+          ) : (
+            <ChevronDown className="h-6 w-6 text-white" />
+          )}
+        </div>
+        <CardHeader className="hidden"></CardHeader>
+        {isBlueprintExpanded && (
+          <CardContent className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+            <div className="flex gap-4">
+              {/* Offensive Blueprint */}
+              <Card className="flex flex-col w-full p-4">
+                <CardHeader>
+                  <CardTitle>Offense</CardTitle>
+                  {/* Playbook dropdown replaces the old static CardDescription */}
+                  <Select
+                    value={offensePlaybook}
+                    onValueChange={setOffensePlaybook}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Playbook" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        ...OFFENSIVE_TEAM_PLAYBOOKS,
+                        ...ALTERNATE_OFFENSE_PLAYBOOKS,
+                      ].map((playbook) => (
+                        <SelectItem key={playbook} value={playbook}>
+                          {playbook}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Position</TableHead>
+                        <TableHead className="text-left">Archetype</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {OFFENSIVE_POSITIONS.map((item) => (
+                        <TableRow key={item.position}>
+                          <TableCell className="font-bold align-top">
+                            {item.position}
+                          </TableCell>
+                          <TableCell className="text-left">
+                            <ArchetypeSelector
+                              position={item.position}
+                              availableArchetypes={
+                                ARCHETYPE_MAP[item.position] || []
+                              }
+                              selectedArchetypes={
+                                offenseBlueprintArchetypes[item.position] || []
+                              }
+                              onAdd={(archetype) =>
+                                addOffenseArchetype(item.position, archetype)
+                              }
+                              onRemove={(archetype) =>
+                                removeOffenseArchetype(item.position, archetype)
+                              }
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
 
-            <CardDescription>Air Raid Recruiting Blueprint</CardDescription>
-          </CardHeader>
-
-          {/* Card Content */}
-          <CardContent className="">
-            <Table>
-              {/* Table Header Labels */}
-              <TableRow>
-                <TableHead>Position</TableHead>
-                <TableHead className="text-left">Archetype</TableHead>
-              </TableRow>
-
-              {/* Map the Offensive archetypes here */}
-              {offensiveArchetypes.map((item) => (
-                <TableRow key={item.position}>
-                  <TableCell className="font-bold">{item.position}</TableCell>
-                  <TableCell className="text-left">{item.archetype}</TableCell>
-                </TableRow>
-              ))}
-            </Table>
+              {/* Defensive Blueprint */}
+              <Card className="flex flex-col w-full p-4">
+                <CardHeader>
+                  <CardTitle>Defense</CardTitle>
+                  {/* Playbook dropdown replaces the old static CardDescription */}
+                  <Select
+                    value={defensePlaybook}
+                    onValueChange={setDefensePlaybook}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Playbook" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEFENSIVE_PLAYBOOKS.map((playbook) => (
+                        <SelectItem key={playbook} value={playbook}>
+                          {playbook}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Position</TableHead>
+                        <TableHead className="text-left">Archetype</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {DEFENSIVE_POSITIONS.map((item) => (
+                        <TableRow key={item.position}>
+                          <TableCell className="font-bold align-top">
+                            {item.position}
+                          </TableCell>
+                          <TableCell className="text-left">
+                            <ArchetypeSelector
+                              position={item.position}
+                              availableArchetypes={
+                                ARCHETYPE_MAP[item.position] || []
+                              }
+                              selectedArchetypes={
+                                defenseBlueprintArchetypes[item.position] || []
+                              }
+                              onAdd={(archetype) =>
+                                addDefenseArchetype(item.position, archetype)
+                              }
+                              onRemove={(archetype) =>
+                                removeDefenseArchetype(item.position, archetype)
+                              }
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           </CardContent>
-        </Card>
-
-        {/* Defensive Positions */}
-        <Card className="flex flex-col w-full p-4">
-          {/* Card Title & Description */}
-          <CardHeader>
-            <CardTitle>Defense</CardTitle>
-
-            <CardDescription>4-3 Multiple Recruiting Blueprint</CardDescription>
-          </CardHeader>
-
-          {/* Card Content */}
-          <CardContent className="">
-            <Table>
-              {/* Table Header Labels */}
-              <TableRow>
-                <TableHead>Position</TableHead>
-                <TableHead className="text-left">Archetype</TableHead>
-              </TableRow>
-
-              {/* Map the Defensive archetypes here */}
-              {defensiveArchetypes.map((item) => (
-                <TableRow key={item.position}>
-                  <TableCell className="font-bold">{item.position}</TableCell>
-                  <TableCell className="text-left">{item.archetype}</TableCell>
-                </TableRow>
-              ))}
-            </Table>
-          </CardContent>
-        </Card>
+        )}
       </Card>
 
       {/* Recruiting Needs Section */}
