@@ -407,14 +407,15 @@ const RecruitingNeedsTable = React.memo<{
 
           return (
             <React.Fragment key={need.position}>
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: hover zone for tooltip — button inside handles accessibility */}
               <div
                 className={`p-2 text-center border-r border-b border-gray-300 flex items-center justify-center relative ${rowClass}`}
+                onMouseEnter={() => setHoveredPosition(need.position)}
+                onMouseLeave={() => setHoveredPosition(null)}
               >
                 <button
                   type="button"
                   className="cursor-pointer"
-                  onMouseEnter={() => setHoveredPosition(need.position)}
-                  onMouseLeave={() => setHoveredPosition(null)}
                 >
                   {need.position}
                   {(() => {
