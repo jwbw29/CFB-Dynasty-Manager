@@ -331,6 +331,7 @@ export const ARCHETYPE_MAP: Record<string, string[]> = {
 const POSITION_TO_ARCHETYPE_KEY: Record<string, string> = {
   // Offense — roster-specific positions
   QB: "QB",
+  RB: "HB",
   FB: "FB",
   WR: "WR",
   TE: "TE",
