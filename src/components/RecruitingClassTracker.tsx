@@ -519,7 +519,9 @@ const RecruitingNeedsTable = React.memo<{
               </div>
               <div
                 className={`p-2 border-r border-b border-gray-300 ${rowClass} ${
-                  need.rating.toLowerCase().includes("p1") ? "ring-2 ring-inset ring-red-500" : ""
+                  need.rating.toLowerCase().includes("p1")
+                    ? "ring-2 ring-inset ring-red-500"
+                    : ""
                 }`}
               >
                 <Input
@@ -696,27 +698,38 @@ const RecruitingClassTracker: React.FC = () => {
   const [isNeedsExpanded, setIsNeedsExpanded] = useState<boolean>(false);
 
   // Recruiting Blueprint feature state
-  const [isBlueprintExpanded, setIsBlueprintExpanded] = useState<boolean>(false);
+  const [isBlueprintExpanded, setIsBlueprintExpanded] =
+    useState<boolean>(false);
   // Selected offensive playbook for the recruiting blueprint
   const [offensePlaybook, setOffensePlaybook] = useLocalStorage<string>(
-    currentDynastyId ? `offensePlaybook_${currentDynastyId}` : "offensePlaybook",
+    currentDynastyId
+      ? `offensePlaybook_${currentDynastyId}`
+      : "offensePlaybook",
     "",
   );
   // Selected defensive playbook for the recruiting blueprint
   const [defensePlaybook, setDefensePlaybook] = useLocalStorage<string>(
-    currentDynastyId ? `defensePlaybook_${currentDynastyId}` : "defensePlaybook",
+    currentDynastyId
+      ? `defensePlaybook_${currentDynastyId}`
+      : "defensePlaybook",
     "",
   );
   // Maps offensive positions to selected archetypes for blueprint targeting
-  const [offenseBlueprintArchetypes, setOffenseBlueprintArchetypes] = useLocalStorage<Record<string, string[]>>(
-    currentDynastyId ? `offenseBlueprintArchetypes_${currentDynastyId}` : "offenseBlueprintArchetypes",
-    {},
-  );
+  const [offenseBlueprintArchetypes, setOffenseBlueprintArchetypes] =
+    useLocalStorage<Record<string, string[]>>(
+      currentDynastyId
+        ? `offenseBlueprintArchetypes_${currentDynastyId}`
+        : "offenseBlueprintArchetypes",
+      {},
+    );
   // Maps defensive positions to selected archetypes for blueprint targeting
-  const [defenseBlueprintArchetypes, setDefenseBlueprintArchetypes] = useLocalStorage<Record<string, string[]>>(
-    currentDynastyId ? `defenseBlueprintArchetypes_${currentDynastyId}` : "defenseBlueprintArchetypes",
-    {},
-  );
+  const [defenseBlueprintArchetypes, setDefenseBlueprintArchetypes] =
+    useLocalStorage<Record<string, string[]>>(
+      currentDynastyId
+        ? `defenseBlueprintArchetypes_${currentDynastyId}`
+        : "defenseBlueprintArchetypes",
+      {},
+    );
 
   // Apply sorting to displayed recruits
   const recruitsForSelectedYear = sortRecruitsByStars(
@@ -929,7 +942,7 @@ const RecruitingClassTracker: React.FC = () => {
       <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
         <button
           type="button"
-          className="bg-gradient-to-r from-primary to-primary/90 p-6 cursor-pointer flex flex-row items-center justify-between hover:from-primary/80 hover:to-primary/70 transition-all"
+          className="bg-gradient-to-r from-primary to-primary/90 p-6 cursor-pointer flex flex-row w-full items-center justify-between hover:from-primary/80 hover:to-primary/70 transition-all"
           onClick={() => setIsBlueprintExpanded(!isBlueprintExpanded)}
         >
           <span className="text-2xl font-black text-white">
@@ -1074,7 +1087,7 @@ const RecruitingClassTracker: React.FC = () => {
       <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
         <button
           type="button"
-          className="bg-gradient-to-r from-primary to-primary/90 p-6 cursor-pointer flex flex-row items-center justify-between hover:from-primary/80 hover:to-primary/70 transition-all"
+          className="bg-gradient-to-r from-primary to-primary/90 p-6 cursor-pointer flex flex-row w-full items-center justify-between hover:from-primary/80 hover:to-primary/70 transition-all"
           onClick={() => setIsNeedsExpanded(!isNeedsExpanded)}
         >
           <span className="text-2xl font-black text-white">
@@ -1350,27 +1363,27 @@ const RecruitingClassTracker: React.FC = () => {
                   </td>
                   <td className="text-center">{recruit.stars} ⭐</td>
                   <td className="text-center">{recruit.position}</td>
-	                  <td className="text-center">
-	                    {recruit.archetype
-	                      ? (() => {
-	                          const colorIdx = getArchetypeColorIndex(
-	                            recruit.position,
-	                            recruit.archetype,
-	                          );
-	                          const color =
-	                            ARCHETYPE_COLORS[
-	                              colorIdx % ARCHETYPE_COLORS.length
-	                            ];
-	                          return (
-	                            <span
-	                              className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium border ${color.bg} ${color.text} ${color.border}`}
-	                            >
-	                              {recruit.archetype}
-	                            </span>
-	                          );
-	                        })()
-	                      : "—"}
-	                  </td>
+                  <td className="text-center">
+                    {recruit.archetype
+                      ? (() => {
+                          const colorIdx = getArchetypeColorIndex(
+                            recruit.position,
+                            recruit.archetype,
+                          );
+                          const color =
+                            ARCHETYPE_COLORS[
+                              colorIdx % ARCHETYPE_COLORS.length
+                            ];
+                          return (
+                            <span
+                              className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium border ${color.bg} ${color.text} ${color.border}`}
+                            >
+                              {recruit.archetype}
+                            </span>
+                          );
+                        })()
+                      : "—"}
+                  </td>
                   <td className="text-center">{recruit.state}</td>
                   <td className="text-center">
                     {recruit.nationalRank ?? "N/A"}
@@ -1389,12 +1402,12 @@ const RecruitingClassTracker: React.FC = () => {
                   </td>
                   <td className="text-center">
                     {(recruit.commitStatus ?? "verbal") === "verbal" ? (
-	                      <button
-	                        type="button"
-	                        onClick={() => toggleCommitStatus(recruit.id)}
-	                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border-2 border-dashed border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
-	                        title="Click to mark as hard commit"
-	                      >
+                      <button
+                        type="button"
+                        onClick={() => toggleCommitStatus(recruit.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border-2 border-dashed border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+                        title="Click to mark as hard commit"
+                      >
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
