@@ -312,4 +312,63 @@ export const ARCHETYPE_MAP: Record<string, string[]> = {
   "Slot CB": ["Boundary", "Bump and Run", "Field", "Zone"],
   SS: ["Box Specialist", "Coverage Specialist", "Hybrid"],
   FS: ["Box Specialist", "Coverage Specialist", "Hybrid"],
+  K: ["Accuracy", "Power"],
+  P: ["Accuracy", "Power"],
+  FB: ["Blocking", "Utility"],
 };
+
+/**
+ * Maps roster-specific and general position codes to their corresponding
+ * ARCHETYPE_MAP key, then returns the available archetypes for that position.
+ *
+ * Positions without archetypes (RB/HB, OL, DL, LB, S, ATH, and any unknown
+ * position) return an empty array — the UI hides the archetype dropdown for these.
+ *
+ * Note: The ARCHETYPE_MAP also contains Blueprint-only keys (RLE, RRE, RDT,
+ * NT, SUBLB, "Slot CB") that are intentionally NOT mapped here — those are
+ * used exclusively by the Recruiting Blueprint feature.
+ */
+const POSITION_TO_ARCHETYPE_KEY: Record<string, string> = {
+  // Offense — roster-specific positions
+  QB: "QB",
+  FB: "FB",
+  WR: "WR",
+  TE: "TE",
+  LT: "OT",
+  RT: "OT",
+  LG: "OG",
+  RG: "OG",
+  C: "C",
+  // Defense — roster-specific positions
+  LEDGE: "LE",
+  REDGE: "RE",
+  DT: "DT",
+  SAM: "SAM",
+  MIKE: "MIKE",
+  WILL: "WILL",
+  // "CB" in the roster maps to "CB1" in ARCHETYPE_MAP (naming disconnect in game data)
+  CB: "CB1",
+  FS: "FS",
+  SS: "SS",
+  // Special teams
+  K: "K",
+  P: "P",
+};
+
+export function getArchetypesForPosition(position: string): string[] {
+  const archetypeKey = POSITION_TO_ARCHETYPE_KEY[position];
+  if (!archetypeKey) return [];
+  return ARCHETYPE_MAP[archetypeKey] || [];
+}
+
+/**
+ * Returns the color index (into ARCHETYPE_COLORS) for a given archetype
+ * within a position's archetype list. The index is based on the archetype's
+ * position in the available archetypes array, ensuring stable per-archetype
+ * coloring that matches the Recruiting Blueprint's ArchetypeSelector pills.
+ */
+export function getArchetypeColorIndex(position: string, archetype: string): number {
+  const archetypes = getArchetypesForPosition(position);
+  const index = archetypes.indexOf(archetype);
+  return index >= 0 ? index : 0;
+}

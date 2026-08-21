@@ -77,6 +77,8 @@ export interface Player {
   isDrafted: boolean;
   height?: number;
   weight?: number;
+  // Player's position-specific archetype (e.g., "Pocket Passer", "Speedster")
+  archetype?: string;
 }
 
 export interface Recruit {
@@ -95,6 +97,8 @@ export interface Recruit {
   weight?: string;
   // CFB 27 update: recruits now verbal commit first, then hard commit later
   commitStatus?: "verbal" | "hard";
+  // Recruit's position-specific archetype (e.g., "Pocket Passer", "Speedster")
+  archetype?: string;
 }
 
 export interface Transfer {
@@ -105,6 +109,8 @@ export interface Transfer {
   stars: string;
   transferDirection: "From" | "To";
   school: string;
+  // Transfer player's position-specific archetype (e.g., "Pocket Passer", "Speedster")
+  archetype?: string;
 }
 
 export interface DraftedPlayer {

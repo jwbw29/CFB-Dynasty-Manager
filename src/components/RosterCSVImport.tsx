@@ -40,6 +40,7 @@ const RosterCSVImport: React.FC<RosterCSVImportProps> = ({
       rating: row["Rating"]?.toString() || "",
       devTrait: row["Development Trait"] || "Normal",
       notes: row["Notes"] || "",
+      archetype: row["Archetype"] || "",
     }));
   };
 

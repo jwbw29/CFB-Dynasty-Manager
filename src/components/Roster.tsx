@@ -84,6 +84,11 @@ import { useDynasty } from "@/contexts/DynastyContext";
 import { HeroHeader } from "@/components/ui/HeroHeader";
 import clsx from "clsx";
 import { fbsTeams } from "@/utils/fbsTeams";
+import { ARCHETYPE_COLORS } from "@/components/ArchetypeSelector";
+import {
+  getArchetypesForPosition,
+  getArchetypeColorIndex,
+} from "@/data/recruitingBlueprint";
 
 interface Player {
   id: string;
@@ -99,6 +104,8 @@ interface Player {
   isDrafted: boolean;
   height?: number;
   weight?: number;
+  // Player's position-specific archetype (e.g., "Pocket Passer", "Speedster")
+  archetype?: string;
 }
 
 interface DevTraitBadgeProps {
@@ -151,6 +158,7 @@ type SortField =
   | "jersey #"
   | "name"
   | "position"
+  | "archetype"
   | "year"
   | "height"
   | "weight"
@@ -203,6 +211,7 @@ const initialNewPlayerState: Omit<Player, "id"> = {
   isRedshirted: false,
   isTransferring: false,
   isDrafted: false,
+  archetype: "",
 };
 
 const DevTraitBadge: React.FC<DevTraitBadgeProps> = ({ trait }) => {
@@ -325,6 +334,7 @@ const Roster: React.FC = () => {
 
   // Sync HC name with coach profile
   useEffect(() => {
+    void dataVersion;
     const coachProfile = getCoachProfile();
     if (
       coachProfile?.coachName &&
@@ -338,7 +348,7 @@ const Roster: React.FC = () => {
         },
       }));
     }
-  }, [dataVersion]);
+  }, [coaches.headCoach.name, dataVersion]);
 
   /**
    * Applies roster filters using AND semantics across categories:
@@ -391,6 +401,7 @@ const Roster: React.FC = () => {
               isRedshirted: p.isRedshirted || false,
               isTransferring: false,
               isDrafted: false,
+              archetype: p.archetype || "",
             }) as Player,
         ),
       ]);
@@ -409,6 +420,7 @@ const Roster: React.FC = () => {
       Weight: p.weight ? `${p.weight}` : "",
       Rating: p.rating,
       "Dev. Trait": p.devTrait,
+      Archetype: p.archetype || "",
       "Is Redshirted": p.isRedshirted ? "Yes" : "No",
       Notes: p.notes,
     }));
@@ -456,6 +468,15 @@ const Roster: React.FC = () => {
         return sortConfig.direction === "asc"
           ? aDisplay.localeCompare(bDisplay)
           : bDisplay.localeCompare(aDisplay);
+      }
+      if (sortConfig.field === "archetype") {
+        const aArch = a.archetype || "";
+        const bArch = b.archetype || "";
+        if (!aArch && bArch) return 1;
+        if (aArch && !bArch) return -1;
+        return sortConfig.direction === "asc"
+          ? aArch.localeCompare(bArch)
+          : bArch.localeCompare(aArch);
       }
       const field = sortConfig.field as "position";
       return sortConfig.direction === "asc"
@@ -952,6 +973,7 @@ const Roster: React.FC = () => {
                       "Jersey #",
                       "Name",
                       "Position",
+                      "Archetype",
                       "Year",
                       "Height",
                       "Weight",
@@ -994,6 +1016,7 @@ const Roster: React.FC = () => {
                       {/* Player Name */}
                       <TableCell className="text-center font-medium">
                         <button
+                          type="button"
                           onClick={() => openPlayerCard(player)}
                           className="hover:underline"
                         >
@@ -1004,6 +1027,29 @@ const Roster: React.FC = () => {
                       {/* Player Position */}
                       <TableCell className="text-center">
                         {player.position}
+                      </TableCell>
+
+                      {/* Player Archetype — colored pill matching Recruiting Blueprint style */}
+                      <TableCell className="text-center">
+                        {player.archetype
+                          ? (() => {
+                              const colorIdx = getArchetypeColorIndex(
+                                player.position,
+                                player.archetype,
+                              );
+                              const color =
+                                ARCHETYPE_COLORS[
+                                  colorIdx % ARCHETYPE_COLORS.length
+                                ];
+                              return (
+                                <span
+                                  className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium border ${color.bg} ${color.text} ${color.border}`}
+                                >
+                                  {player.archetype}
+                                </span>
+                              );
+                            })()
+                          : "—"}
                       </TableCell>
 
                       {/* Player Year & Transfer/Draft Status */}
@@ -1196,7 +1242,7 @@ const Roster: React.FC = () => {
               <Select
                 value={newPlayer.position}
                 onValueChange={(v) =>
-                  setNewPlayer((p) => ({ ...p, position: v }))
+                  setNewPlayer((p) => ({ ...p, position: v, archetype: "" }))
                 }
               >
                 <SelectTrigger
@@ -1217,6 +1263,32 @@ const Roster: React.FC = () => {
                 <p className="text-red-500 text-xs">{errors.position}</p>
               )}
             </div>
+            {(() => {
+              const archetypes = getArchetypesForPosition(newPlayer.position);
+              if (archetypes.length === 0) return null;
+              return (
+                <div className="space-y-1.5">
+                  <Label htmlFor="archetype">Archetype</Label>
+                  <Select
+                    value={newPlayer.archetype || ""}
+                    onValueChange={(v) =>
+                      setNewPlayer((p) => ({ ...p, archetype: v }))
+                    }
+                  >
+                    <SelectTrigger id="archetype">
+                      <SelectValue placeholder="Archetype" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {archetypes.map((arch) => (
+                        <SelectItem key={arch} value={arch}>
+                          {arch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
             <div className="space-y-1.5">
               <Label htmlFor="year">Year</Label>
               <Select

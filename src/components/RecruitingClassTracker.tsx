@@ -62,8 +62,13 @@ import {
   OFFENSIVE_POSITIONS,
   DEFENSIVE_POSITIONS,
   ARCHETYPE_MAP,
+  getArchetypesForPosition,
+  getArchetypeColorIndex,
 } from "@/data/recruitingBlueprint";
-import { ArchetypeSelector } from "@/components/ArchetypeSelector";
+import {
+  ArchetypeSelector,
+  ARCHETYPE_COLORS,
+} from "@/components/ArchetypeSelector";
 
 interface DevTraitBadgeProps {
   trait: "Normal" | "Impact" | "Star" | "Elite";
@@ -404,10 +409,13 @@ const RecruitingNeedsTable = React.memo<{
             <React.Fragment key={need.position}>
               <div
                 className={`p-2 text-center border-r border-b border-gray-300 flex items-center justify-center relative ${rowClass}`}
-                onMouseEnter={() => setHoveredPosition(need.position)}
-                onMouseLeave={() => setHoveredPosition(null)}
               >
-                <span className="cursor-pointer">
+                <button
+                  type="button"
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHoveredPosition(need.position)}
+                  onMouseLeave={() => setHoveredPosition(null)}
+                >
                   {need.position}
                   {(() => {
                     const players = getPlayersForPosition(need.position);
@@ -423,7 +431,7 @@ const RecruitingNeedsTable = React.memo<{
                       </span>
                     );
                   })()}
-                </span>
+                </button>
                 {status === "complete" && (
                   <CheckCircle className="h-4 w-4 text-green-600 ml-2" />
                 )}
@@ -624,6 +632,7 @@ type NewRecruitFormState = {
   name: string;
   stars: string;
   position: string;
+  archetype: string;
   state: string;
   nationalRank: string;
   stateRank: string;
@@ -672,6 +681,7 @@ const RecruitingClassTracker: React.FC = () => {
     name: "",
     stars: "",
     position: "",
+    archetype: "",
     state: "",
     nationalRank: "",
     stateRank: "",
@@ -790,6 +800,7 @@ const RecruitingClassTracker: React.FC = () => {
       position: newRecruit.position,
       state: newRecruit.state,
       potential: newRecruit.potential,
+      archetype: newRecruit.archetype,
       nationalRank: newRecruit.nationalRank
         ? parseInt(newRecruit.nationalRank, 10)
         : null,
@@ -810,6 +821,7 @@ const RecruitingClassTracker: React.FC = () => {
       name: recruit.name,
       stars: recruit.stars,
       position: recruit.position,
+      archetype: recruit.archetype || "",
       state: recruit.state,
       potential: recruit.potential,
       nationalRank: recruit.nationalRank?.toString() ?? "",
@@ -829,6 +841,7 @@ const RecruitingClassTracker: React.FC = () => {
           position: newRecruit.position,
           state: newRecruit.state,
           potential: newRecruit.potential,
+          archetype: newRecruit.archetype,
           nationalRank: newRecruit.nationalRank
             ? parseInt(newRecruit.nationalRank, 10)
             : null,
@@ -914,7 +927,8 @@ const RecruitingClassTracker: React.FC = () => {
 
       {/* Recruiting Blueprint — collapsible accordion matching Recruiting Needs Board style */}
       <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
-        <div
+        <button
+          type="button"
           className="bg-gradient-to-r from-primary to-primary/90 p-6 cursor-pointer flex flex-row items-center justify-between hover:from-primary/80 hover:to-primary/70 transition-all"
           onClick={() => setIsBlueprintExpanded(!isBlueprintExpanded)}
         >
@@ -926,7 +940,7 @@ const RecruitingClassTracker: React.FC = () => {
           ) : (
             <ChevronDown className="h-6 w-6 text-white" />
           )}
-        </div>
+        </button>
         <CardHeader className="hidden"></CardHeader>
         {isBlueprintExpanded && (
           <CardContent className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -1058,7 +1072,8 @@ const RecruitingClassTracker: React.FC = () => {
 
       {/* Recruiting Needs Section */}
       <Card className="border-2 border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
-        <div
+        <button
+          type="button"
           className="bg-gradient-to-r from-primary to-primary/90 p-6 cursor-pointer flex flex-row items-center justify-between hover:from-primary/80 hover:to-primary/70 transition-all"
           onClick={() => setIsNeedsExpanded(!isNeedsExpanded)}
         >
@@ -1070,7 +1085,7 @@ const RecruitingClassTracker: React.FC = () => {
           ) : (
             <ChevronDown className="h-6 w-6 text-white" />
           )}
-        </div>
+        </button>
         <CardHeader className="hidden"></CardHeader>
         {isNeedsExpanded && (
           <CardContent className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -1195,7 +1210,7 @@ const RecruitingClassTracker: React.FC = () => {
             <Select
               value={newRecruit.position}
               onValueChange={(value) =>
-                setNewRecruit({ ...newRecruit, position: value })
+                setNewRecruit({ ...newRecruit, position: value, archetype: "" })
               }
             >
               <SelectTrigger>
@@ -1209,6 +1224,29 @@ const RecruitingClassTracker: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+            {(() => {
+              const archetypes = getArchetypesForPosition(newRecruit.position);
+              if (archetypes.length === 0) return null;
+              return (
+                <Select
+                  value={newRecruit.archetype}
+                  onValueChange={(value) =>
+                    setNewRecruit({ ...newRecruit, archetype: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Archetype" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {archetypes.map((arch) => (
+                      <SelectItem key={arch} value={arch}>
+                        {arch}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            })()}
             <Select
               value={newRecruit.state}
               onValueChange={(value) =>
@@ -1295,6 +1333,7 @@ const RecruitingClassTracker: React.FC = () => {
                 <th className="text-center">Name</th>
                 <th className="text-center">Stars</th>
                 <th className="text-center">Position</th>
+                <th className="text-center">Archetype</th>
                 <th className="text-center">State</th>
                 <th className="text-center">Nat. Rank</th>
                 <th className="text-center">State Rank</th>
@@ -1311,6 +1350,27 @@ const RecruitingClassTracker: React.FC = () => {
                   </td>
                   <td className="text-center">{recruit.stars} ⭐</td>
                   <td className="text-center">{recruit.position}</td>
+	                  <td className="text-center">
+	                    {recruit.archetype
+	                      ? (() => {
+	                          const colorIdx = getArchetypeColorIndex(
+	                            recruit.position,
+	                            recruit.archetype,
+	                          );
+	                          const color =
+	                            ARCHETYPE_COLORS[
+	                              colorIdx % ARCHETYPE_COLORS.length
+	                            ];
+	                          return (
+	                            <span
+	                              className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium border ${color.bg} ${color.text} ${color.border}`}
+	                            >
+	                              {recruit.archetype}
+	                            </span>
+	                          );
+	                        })()
+	                      : "—"}
+	                  </td>
                   <td className="text-center">{recruit.state}</td>
                   <td className="text-center">
                     {recruit.nationalRank ?? "N/A"}
@@ -1329,11 +1389,12 @@ const RecruitingClassTracker: React.FC = () => {
                   </td>
                   <td className="text-center">
                     {(recruit.commitStatus ?? "verbal") === "verbal" ? (
-                      <button
-                        onClick={() => toggleCommitStatus(recruit.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border-2 border-dashed border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
-                        title="Click to mark as hard commit"
-                      >
+	                      <button
+	                        type="button"
+	                        onClick={() => toggleCommitStatus(recruit.id)}
+	                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border-2 border-dashed border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+	                        title="Click to mark as hard commit"
+	                      >
                         <span className="relative flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>

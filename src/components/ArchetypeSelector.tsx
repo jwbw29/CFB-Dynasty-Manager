@@ -25,7 +25,7 @@ import { X, Plus } from "lucide-react";
  * Every entry ships a light/dark variant for background, text, and border so pills
  * remain legible in both themes without extra runtime logic.
  */
-const ARCHETYPE_COLORS = [
+export const ARCHETYPE_COLORS = [
   { bg: "bg-blue-100 dark:bg-blue-900/40", text: "text-blue-800 dark:text-blue-200", border: "border-blue-200 dark:border-blue-700" },
   { bg: "bg-green-100 dark:bg-green-900/40", text: "text-green-800 dark:text-green-200", border: "border-green-200 dark:border-green-700" },
   { bg: "bg-purple-100 dark:bg-purple-900/40", text: "text-purple-800 dark:text-purple-200", border: "border-purple-200 dark:border-purple-700" },
