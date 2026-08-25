@@ -356,7 +356,25 @@ const POSITION_TO_ARCHETYPE_KEY: Record<string, string> = {
   P: "P",
 };
 
+/**
+ * General/umbrella positions used in recruiting and transfers map to the
+ * deduplicated union of their sub-position archetypes. These can't use the
+ * single-key lookup above because each general position spans multiple
+ * ARCHETYPE_MAP keys.
+ */
+const GENERAL_POSITION_ARCHETYPES: Record<string, string[]> = {
+  OL: ["Agile", "Pass Protection", "Raw Strength", "Well Rounded"],
+  DL: ["Edge Setter", "Gap Specialist", "Power Rusher", "Pure Power", "Speed Rusher"],
+  LB: ["Lurker", "Signal Caller", "Thumper"],
+  S: ["Box Specialist", "Coverage Specialist", "Hybrid"],
+};
+
 export function getArchetypesForPosition(position: string): string[] {
+  // Check general/umbrella positions first (recruiting & transfer contexts)
+  const generalArchetypes = GENERAL_POSITION_ARCHETYPES[position];
+  if (generalArchetypes) return generalArchetypes;
+
+  // Fall through to specific roster position lookup
   const archetypeKey = POSITION_TO_ARCHETYPE_KEY[position];
   if (!archetypeKey) return [];
   return ARCHETYPE_MAP[archetypeKey] || [];
