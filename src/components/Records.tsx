@@ -27,12 +27,15 @@ import {
   getUsernameForTeam,
   getTeamStats,
   getTeamLeaders,
+  getGameStats,
+  hasGameStatsForYear,
   getRivalTrophiesForYear,
   getBowlTrophiesForYear,
   getConferenceTrophiesForYear,
   setPlayers,
 } from "@/utils/localStorage";
 import { formatDisplayName } from "@/utils";
+import { accumulateGameStats } from "@/utils/accumulateGameStats";
 import {
   YearRecord,
   Game,
@@ -246,8 +249,12 @@ const Records: React.FC = () => {
         teamStats: currentDynastyId
           ? getTeamStats(currentDynastyId, currentYear)
           : undefined,
+        // Team Leaders: prefer computed leaders from per-game stats when available,
+        // fall back to manually-entered leaders otherwise
         teamLeaders: currentDynastyId
-          ? getTeamLeaders(currentDynastyId, currentYear)
+          ? hasGameStatsForYear(currentDynastyId, currentYear)
+            ? accumulateGameStats(getGameStats(currentDynastyId, currentYear))
+            : getTeamLeaders(currentDynastyId, currentYear)
           : undefined,
       };
     } else {
@@ -257,10 +264,14 @@ const Records: React.FC = () => {
 
       // Load team stats and trophies for historical records if dynasty ID is available
       if (recordForDisplay && currentDynastyId) {
+        const historicalLeaders = hasGameStatsForYear(currentDynastyId, selectedYear)
+          ? accumulateGameStats(getGameStats(currentDynastyId, selectedYear))
+          : getTeamLeaders(currentDynastyId, selectedYear);
+
         recordForDisplay = {
           ...recordForDisplay,
           teamStats: getTeamStats(currentDynastyId, selectedYear),
-          teamLeaders: getTeamLeaders(currentDynastyId, selectedYear),
+          teamLeaders: historicalLeaders,
           rivalTrophies:
             recordForDisplay.rivalTrophies ||
             getRivalTrophiesForYear(selectedYear),

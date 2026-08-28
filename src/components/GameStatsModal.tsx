@@ -45,6 +45,7 @@ import {
 import { Plus, Pencil, Trash2, Save, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getGameStats, setGameStats } from "@/utils/localStorage";
+import { useDynasty } from "@/contexts/DynastyContext";
 import {
   STAT_FIELDS,
   POSITION_FILTERS,
@@ -128,6 +129,7 @@ export const GameStatsModal: React.FC<GameStatsModalProps> = ({
   dynastyId,
   currentYear,
 }) => {
+  const { refreshData } = useDynasty();
   const [gameStatsData, setGameStatsData] = useState<GameStatsData>({});
   const [activeCategory, setActiveCategory] =
     useState<GameStatCategory>("Passing");
@@ -298,6 +300,7 @@ export const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
     setGameStats(dynastyId, currentYear, updatedData);
     setGameStatsData(updatedData);
+    refreshData();
     resetFormState();
     toast.success(`Stats saved for ${nextEntry.playerName}`);
   };
@@ -321,6 +324,7 @@ export const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
     setGameStats(dynastyId, currentYear, updatedData);
     setGameStatsData(updatedData);
+    refreshData();
 
     // If the deleted row was currently in edit mode, reset to avoid dangling references.
     if (editingEntry?.id === entry.id) {
