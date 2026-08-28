@@ -35,7 +35,7 @@ import {
   setPlayers,
 } from "@/utils/localStorage";
 import { formatDisplayName } from "@/utils";
-import { accumulateGameStats } from "@/utils/accumulateGameStats";
+import { accumulateGameStats, computeTeamStatsFromGameData } from "@/utils/accumulateGameStats";
 import {
   YearRecord,
   Game,
@@ -245,9 +245,25 @@ const Records: React.FC = () => {
         rivalTrophies: getRivalTrophiesForYear(currentYear),
         bowlTrophies: getBowlTrophiesForYear(currentYear),
         conferenceTrophies: getConferenceTrophiesForYear(currentYear),
-        // Team Stats (load from localStorage)
+        // Team Stats: compute from per-game data when available, merging with
+        // manual defensive yardage since individual player stats can't derive yards allowed
         teamStats: currentDynastyId
-          ? getTeamStats(currentDynastyId, currentYear)
+          ? (() => {
+              if (hasGameStatsForYear(currentDynastyId, currentYear)) {
+                const computed = computeTeamStatsFromGameData(
+                  getGameStats(currentDynastyId, currentYear),
+                  liveSchedule,
+                );
+                const manual = getTeamStats(currentDynastyId, currentYear);
+                return {
+                  ...computed,
+                  totalDefense: manual.totalDefense,
+                  defPassYards: manual.defPassYards,
+                  defRushYards: manual.defRushYards,
+                };
+              }
+              return getTeamStats(currentDynastyId, currentYear);
+            })()
           : undefined,
         // Team Leaders: prefer computed leaders from per-game stats when available,
         // fall back to manually-entered leaders otherwise
@@ -268,9 +284,27 @@ const Records: React.FC = () => {
           ? accumulateGameStats(getGameStats(currentDynastyId, selectedYear))
           : getTeamLeaders(currentDynastyId, selectedYear);
 
+        const historicalSchedule = getSchedule(selectedYear);
+        let historicalTeamStats: TeamStatsData;
+        if (hasGameStatsForYear(currentDynastyId, selectedYear)) {
+          const computed = computeTeamStatsFromGameData(
+            getGameStats(currentDynastyId, selectedYear),
+            historicalSchedule,
+          );
+          const manual = getTeamStats(currentDynastyId, selectedYear);
+          historicalTeamStats = {
+            ...computed,
+            totalDefense: manual.totalDefense,
+            defPassYards: manual.defPassYards,
+            defRushYards: manual.defRushYards,
+          };
+        } else {
+          historicalTeamStats = getTeamStats(currentDynastyId, selectedYear);
+        }
+
         recordForDisplay = {
           ...recordForDisplay,
-          teamStats: getTeamStats(currentDynastyId, selectedYear),
+          teamStats: historicalTeamStats,
           teamLeaders: historicalLeaders,
           rivalTrophies:
             recordForDisplay.rivalTrophies ||
