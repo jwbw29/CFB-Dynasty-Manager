@@ -642,24 +642,33 @@ type NewRecruitFormState = {
   potential: string;
 };
 
-// Function to sort recruits by star rating, then national rank
-const sortRecruitsByStars = (recruits: Recruit[]): Recruit[] => {
-  return [...recruits].sort((a, b) => {
-    const starsA = parseInt(a.stars) || 0;
-    const starsB = parseInt(b.stars) || 0;
-
-    // Sort by stars descending (5 to 1)
-    if (starsA !== starsB) {
-      return starsB - starsA;
-    }
-
-    // If stars are equal, sort by national rank ascending (lower is better)
-    // Ranks of null are sorted last
-    const rankA = a.nationalRank ?? 9999;
-    const rankB = b.nationalRank ?? 9999;
-    return rankA - rankB;
-  });
+// Dev trait ranking (best → worst) so the Dev. Trait column sorts by quality
+// rather than alphabetically.
+const devTraitSortOrder: Record<string, number> = {
+  Elite: 0,
+  Star: 1,
+  Impact: 2,
+  Normal: 3,
 };
+
+// Commit status ranking so the Status column sorts hard commits before verbals.
+const commitStatusSortOrder: Record<string, number> = {
+  hard: 0,
+  verbal: 1,
+};
+
+// Column keys the recruiting table can be sorted by. Values are the lowercased
+// header labels so a single header.toLowerCase() lookup drives both sort + arrow.
+type RecruitSortField =
+  | "name"
+  | "stars"
+  | "position"
+  | "archetype"
+  | "state"
+  | "nat. rank"
+  | "state rank"
+  | "dev. trait"
+  | "status";
 
 const RecruitingClassTracker: React.FC = () => {
   const { currentDynastyId } = useDynasty();
@@ -696,6 +705,10 @@ const RecruitingClassTracker: React.FC = () => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [sortConfig, setSortConfig] = useState<{
+    field: RecruitSortField;
+    direction: "asc" | "desc";
+  }>({ field: "stars", direction: "desc" });
   const [isNeedsExpanded, setIsNeedsExpanded] = useState<boolean>(false);
 
   // Recruiting Blueprint feature state
@@ -732,10 +745,68 @@ const RecruitingClassTracker: React.FC = () => {
       {},
     );
 
-  // Apply sorting to displayed recruits
-  const recruitsForSelectedYear = sortRecruitsByStars(
-    allRecruits.filter((recruit) => recruit.recruitedYear === selectedYear),
-  );
+  // Filter recruits to the selected year, then apply the active column sort.
+  const recruitsForSelectedYear = useMemo(() => {
+    const filtered = allRecruits.filter(
+      (recruit) => recruit.recruitedYear === selectedYear,
+    );
+    const dir = sortConfig.direction === "asc" ? 1 : -1;
+    return filtered.sort((a, b) => {
+      switch (sortConfig.field) {
+        case "name":
+          return (
+            dir * formatDisplayName(a.name).localeCompare(formatDisplayName(b.name))
+          );
+        case "stars":
+          return dir * ((parseInt(a.stars) || 0) - (parseInt(b.stars) || 0));
+        case "position":
+          return dir * a.position.localeCompare(b.position);
+        case "archetype": {
+          const aArch = a.archetype || "";
+          const bArch = b.archetype || "";
+          // Recruits without an archetype always sort to the bottom
+          if (!aArch && bArch) return 1;
+          if (aArch && !bArch) return -1;
+          return dir * aArch.localeCompare(bArch);
+        }
+        case "state":
+          return dir * a.state.localeCompare(b.state);
+        case "nat. rank": {
+          // Null ranks always sort to the bottom regardless of direction
+          if (a.nationalRank == null && b.nationalRank != null) return 1;
+          if (a.nationalRank != null && b.nationalRank == null) return -1;
+          return dir * ((a.nationalRank ?? 0) - (b.nationalRank ?? 0));
+        }
+        case "state rank": {
+          if (a.stateRank == null && b.stateRank != null) return 1;
+          if (a.stateRank != null && b.stateRank == null) return -1;
+          return dir * ((a.stateRank ?? 0) - (b.stateRank ?? 0));
+        }
+        case "dev. trait":
+          return (
+            dir *
+            ((devTraitSortOrder[a.potential] ?? 99) -
+              (devTraitSortOrder[b.potential] ?? 99))
+          );
+        case "status":
+          return (
+            dir *
+            ((commitStatusSortOrder[a.commitStatus ?? "verbal"] ?? 99) -
+              (commitStatusSortOrder[b.commitStatus ?? "verbal"] ?? 99))
+          );
+        default:
+          return 0;
+      }
+    });
+  }, [allRecruits, selectedYear, sortConfig]);
+
+  const requestSort = useCallback((field: RecruitSortField) => {
+    setSortConfig((prev) => ({
+      field,
+      direction:
+        prev.field === field && prev.direction === "desc" ? "asc" : "desc",
+    }));
+  }, []);
 
   const returnerCounts = useMemo(
     () => calculateReturners(rosterPlayers, RECRUITING_POSITION_MAP),
@@ -1336,7 +1407,7 @@ const RecruitingClassTracker: React.FC = () => {
           <div className="flex justify-between items-center">
             <span>Recruiting Class for {selectedYear}</span>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Sorted by Stars, then National Rank
+              Click a column header to sort
             </div>
           </div>
         </CardHeader>
@@ -1344,16 +1415,38 @@ const RecruitingClassTracker: React.FC = () => {
           <Table>
             <thead>
               <tr>
-                <th className="text-center">Name</th>
-                <th className="text-center">Stars</th>
-                <th className="text-center">Position</th>
-                <th className="text-center">Archetype</th>
-                <th className="text-center">State</th>
-                <th className="text-center">Nat. Rank</th>
-                <th className="text-center">State Rank</th>
-                <th className="text-center">Dev. Trait</th>
-                <th className="text-center">Status</th>
-                <th className="text-center">Actions</th>
+                {[
+                  "Name",
+                  "Stars",
+                  "Position",
+                  "Archetype",
+                  "State",
+                  "Nat. Rank",
+                  "State Rank",
+                  "Dev. Trait",
+                  "Status",
+                  "Actions",
+                ].map((header) => (
+                  <th
+                    key={header}
+                    className={
+                      header === "Actions"
+                        ? "text-center"
+                        : "text-center cursor-pointer select-none"
+                    }
+                    onClick={() =>
+                      header !== "Actions" &&
+                      requestSort(header.toLowerCase() as RecruitSortField)
+                    }
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      {header}
+                      {header !== "Actions" &&
+                        sortConfig.field === header.toLowerCase() &&
+                        (sortConfig.direction === "asc" ? " ▲" : " ▼")}
+                    </div>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>

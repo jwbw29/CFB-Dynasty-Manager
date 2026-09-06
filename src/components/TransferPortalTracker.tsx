@@ -2,7 +2,7 @@
 "use client";
 
 import { Pencil, Trash2 } from "lucide-react";
-import { type FC, useState } from "react";
+import { type FC, useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { HeroHeader } from "@/components/ui/HeroHeader";
@@ -25,7 +25,7 @@ import type { Player, Transfer } from "@/types/playerTypes";
 import { generalPositions } from "@/types/playerTypes";
 import { capitalizeName, formatDisplayName } from "@/utils";
 import { fbsTeams } from "@/utils/fbsTeams";
-import { getTransfers, setPlayers } from "@/utils/localStorage";
+import { setPlayers } from "@/utils/localStorage";
 import {
 	MESSAGES,
 	notifyError,
@@ -49,27 +49,15 @@ import { TeamLogo } from "./ui/TeamLogo";
 
 const starOptions = ["5", "4", "3", "2", "1"];
 
-// NEW: Function to sort transfers by star rating (5 to 1)
-const sortTransfersByStars = (transfers: Transfer[]): Transfer[] => {
-	return [...transfers].sort((a, b) => {
-		// Convert star strings to numbers for comparison
-		const starsA = parseInt(a.stars, 10) || 0;
-		const starsB = parseInt(b.stars, 10) || 0;
-
-		// Sort by stars descending (5 to 1)
-		if (starsA !== starsB) {
-			return starsB - starsA;
-		}
-
-		// If stars are equal, sort by transfer direction (To first, then From)
-		if (a.transferDirection !== b.transferDirection) {
-			return a.transferDirection === "To" ? -1 : 1;
-		}
-
-		// If everything else is equal, sort alphabetically by name
-		return a.playerName.localeCompare(b.playerName);
-	});
-};
+// Column keys the transfer table can be sorted by. Values are the lowercased
+// header labels so a single header.toLowerCase() lookup drives both sort + arrow.
+type TransferSortField =
+	| "stars"
+	| "name"
+	| "position"
+	| "archetype"
+	| "direction"
+	| "school";
 
 const TransferPortalTracker: FC = () => {
 	const [currentYear] = useLocalStorage<number>(
@@ -112,11 +100,56 @@ const TransferPortalTracker: FC = () => {
 	});
 	const [editingId, setEditingId] = useState<number | null>(null);
 	const [selectedYear] = useState<number>(currentYear);
+	const [sortConfig, setSortConfig] = useState<{
+		field: TransferSortField;
+		direction: "asc" | "desc";
+	}>({ field: "stars", direction: "desc" });
 
-	// NEW: Apply star rating sorting to displayed transfers
-	const transfersForSelectedYear = sortTransfersByStars(
-		getTransfers(selectedYear),
-	);
+	// Filter transfers to the selected year, then apply the active column sort.
+	const transfersForSelectedYear = useMemo(() => {
+		const dir = sortConfig.direction === "asc" ? 1 : -1;
+		return allTransfers
+			.filter((transfer) => transfer.transferYear === selectedYear)
+			.sort((a, b) => {
+			switch (sortConfig.field) {
+				case "stars":
+					return (
+						dir * ((parseInt(a.stars, 10) || 0) - (parseInt(b.stars, 10) || 0))
+					);
+				case "name":
+					return (
+						dir *
+						formatDisplayName(a.playerName).localeCompare(
+							formatDisplayName(b.playerName),
+						)
+					);
+				case "position":
+					return dir * a.position.localeCompare(b.position);
+				case "archetype": {
+					const aArch = a.archetype || "";
+					const bArch = b.archetype || "";
+					// Transfers without an archetype always sort to the bottom
+					if (!aArch && bArch) return 1;
+					if (aArch && !bArch) return -1;
+					return dir * aArch.localeCompare(bArch);
+				}
+				case "direction":
+					return dir * a.transferDirection.localeCompare(b.transferDirection);
+				case "school":
+					return dir * a.school.localeCompare(b.school);
+				default:
+					return 0;
+			}
+		});
+	}, [selectedYear, sortConfig, allTransfers]);
+
+	const requestSort = useCallback((field: TransferSortField) => {
+		setSortConfig((prev) => ({
+			field,
+			direction:
+				prev.field === field && prev.direction === "desc" ? "asc" : "desc",
+		}));
+	}, []);
 
 	const addIncomingTransfer = () => {
 		const transferToAdd = {
@@ -647,7 +680,7 @@ const TransferPortalTracker: FC = () => {
 					<div className="flex justify-between items-center">
 						<span>Transfer Portal for {selectedYear}</span>
 						<div className="text-sm text-gray-600 dark:text-gray-400">
-							Sorted by Star Rating (5★ → 1★)
+							Click a column header to sort
 						</div>
 					</div>
 				</CardHeader>
@@ -655,13 +688,35 @@ const TransferPortalTracker: FC = () => {
 					<Table>
 						<thead>
 							<tr>
-								<th className="text-center">Stars</th>
-								<th className="text-center">Name</th>
-								<th className="text-center">Position</th>
-								<th className="text-center">Archetype</th>
-								<th className="text-center">Direction</th>
-								<th className="text-center">School</th>
-								<th className="text-center">Actions</th>
+								{[
+									"Stars",
+									"Name",
+									"Position",
+									"Archetype",
+									"Direction",
+									"School",
+									"Actions",
+								].map((header) => (
+									<th
+										key={header}
+										className={
+											header === "Actions"
+												? "text-center"
+												: "text-center cursor-pointer select-none"
+										}
+										onClick={() =>
+											header !== "Actions" &&
+											requestSort(header.toLowerCase() as TransferSortField)
+										}
+									>
+										<div className="flex items-center justify-center gap-1">
+											{header}
+											{header !== "Actions" &&
+												sortConfig.field === header.toLowerCase() &&
+												(sortConfig.direction === "asc" ? " ▲" : " ▼")}
+										</div>
+									</th>
+								))}
 							</tr>
 						</thead>
 						<tbody>
