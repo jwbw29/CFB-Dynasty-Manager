@@ -16,9 +16,13 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 
 const BASE_URL = "https://www.teamcrafters.net";
-const ROSTER_INDEX_URL = `${BASE_URL}/rosters/CFB27/launch-6-30-26`;
+// Roster snapshot/date segment on TeamCrafters. "09-04-26" is the 9/4/26 update
+// (latest freshmen/ratings pass as of this extraction). Bump this one constant to
+// re-point every request (index + per-team pages) at a different published snapshot.
+const ROSTER_VERSION = "09-04-26";
+const ROSTER_INDEX_URL = `${BASE_URL}/rosters/CFB27/${ROSTER_VERSION}`;
 const TEAM_PAGE_URL = (teamId) =>
-  `${BASE_URL}/rosters/CFB27/launch-6-30-26/${encodeURIComponent(teamId)}`;
+  `${BASE_URL}/rosters/CFB27/${ROSTER_VERSION}/${encodeURIComponent(teamId)}`;
 const OUTPUT_PATH = path.resolve(__dirname, "../public/data/default-rosters.json");
 const FBS_TEAMS_PATH = path.resolve(__dirname, "../src/utils/fbsTeams.ts");
 
@@ -139,6 +143,21 @@ const YEAR_MAP = {
   TRANSFER: "TR",
 };
 
+// TeamCrafters emits dev traits in upper case; the app stores them title-cased.
+const DEV_TRAIT_MAP = {
+  NORMAL: "Normal",
+  IMPACT: "Impact",
+  STAR: "Star",
+  ELITE: "Elite",
+};
+
+// TeamCrafters archetype ("tendency") labels are used verbatim except where they
+// diverge from the app's archetype vocabulary (src/data/recruitingBlueprint.ts).
+// Only OL/interior uses a different word ("Pass Protector" vs "Pass Protection").
+const ARCHETYPE_ALIASES = {
+  "Pass Protector": "Pass Protection",
+};
+
 /**
  * Applies a small delay so we stay under agreed scraping rate limits.
  */
@@ -232,9 +251,11 @@ async function loadTeamDirectory() {
   const $ = cheerio.load(html);
   const byId = new Map();
 
-  $("a[href^='/rosters/CFB27/launch-6-30-26/']").each((_, element) => {
+  $(`a[href^='/rosters/CFB27/${ROSTER_VERSION}/']`).each((_, element) => {
     const href = $(element).attr("href") || "";
-    const idMatch = href.match(/\/rosters\/CFB27\/launch-6-30-26\/(\d+)\/?$/);
+    const idMatch = href.match(
+      new RegExp(`/rosters/CFB27/${ROSTER_VERSION}/(\\d+)/?$`)
+    );
     if (!idMatch) {
       return;
     }
@@ -495,6 +516,22 @@ function mapPlayer(rawPlayer) {
     "playerProfile.jerseyNumber",
   ]);
 
+  const devTraitRaw = pickValue(rawPlayer, [
+    "devTrait",
+    "devtrait",
+    "playerProfile.devTrait",
+  ]);
+  const devTrait =
+    DEV_TRAIT_MAP[String(devTraitRaw || "").toUpperCase()] || "Normal";
+
+  const tendencyRaw = pickValue(rawPlayer, [
+    "tendency",
+    "archetype",
+    "playerProfile.tendency",
+  ]);
+  const tendency = String(tendencyRaw || "").trim();
+  const archetype = ARCHETYPE_ALIASES[tendency] || tendency;
+
   return {
     name,
     position,
@@ -507,7 +544,8 @@ function mapPlayer(rawPlayer) {
     weight: Number(
       pickValue(rawPlayer, ["weight", "Weight", "playerProfile.weight"]) ?? 0
     ),
-    devTrait: "Normal",
+    devTrait,
+    archetype,
     isRedshirted: false,
     isTransferring: false,
     isDrafted: false,
@@ -612,7 +650,7 @@ async function main() {
     meta: {
       source: "teamcrafters.net",
       extractedAt: new Date().toISOString(),
-      version: "CFB27-Beta",
+      version: `CFB27-${ROSTER_VERSION}`,
     },
     teamIdMappingTable,
     teams: outputTeams,
