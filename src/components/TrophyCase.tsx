@@ -465,14 +465,9 @@ const TrophyCase: React.FC = () => {
 
   const stats = getTrophyStats();
 
-  // Calculate playoff wins - count unique years with at least one playoff game
   const getPlayoffWins = () => {
-    const playoffYears = new Set(
-      currentTrophies
-        .filter((trophy) => trophy.isPlayoffGame === true)
-        .map((trophy) => trophy.year),
-    );
-    return playoffYears.size;
+    return currentTrophies.filter((trophy) => trophy.isPlayoffGame === true)
+      .length;
   };
 
   const playoffWins = getPlayoffWins();
