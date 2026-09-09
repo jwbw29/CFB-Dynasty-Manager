@@ -413,10 +413,7 @@ const RecruitingNeedsTable = React.memo<{
                 onMouseEnter={() => setHoveredPosition(need.position)}
                 onMouseLeave={() => setHoveredPosition(null)}
               >
-                <button
-                  type="button"
-                  className="cursor-pointer"
-                >
+                <button type="button" className="cursor-pointer">
                   {need.position}
                   {(() => {
                     const players = getPlayersForPosition(need.position);
@@ -755,7 +752,8 @@ const RecruitingClassTracker: React.FC = () => {
       switch (sortConfig.field) {
         case "name":
           return (
-            dir * formatDisplayName(a.name).localeCompare(formatDisplayName(b.name))
+            dir *
+            formatDisplayName(a.name).localeCompare(formatDisplayName(b.name))
           );
         case "stars":
           return dir * ((parseInt(a.stars) || 0) - (parseInt(b.stars) || 0));
@@ -1266,7 +1264,7 @@ const RecruitingClassTracker: React.FC = () => {
         </div>
         <CardHeader className="hidden"></CardHeader>
         <CardContent className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-          <div className="grid grid-cols-1 md:grid-cols-8 gap-4 mb-4 items-end">
+          <div className="flex gap-4 mb-4 items-end">
             <Input
               value={newRecruit.name}
               onChange={(e) =>
@@ -1351,18 +1349,20 @@ const RecruitingClassTracker: React.FC = () => {
             </Select>
             <Input
               value={newRecruit.nationalRank}
+              className="w-20"
               onChange={(e) =>
                 setNewRecruit({ ...newRecruit, nationalRank: e.target.value })
               }
-              placeholder="Nat. Rank"
+              placeholder="Nat."
               type="number"
             />
             <Input
               value={newRecruit.stateRank}
+              className="w-20"
               onChange={(e) =>
                 setNewRecruit({ ...newRecruit, stateRank: e.target.value })
               }
-              placeholder="State Rank"
+              placeholder="State"
               type="number"
             />
             <Select
