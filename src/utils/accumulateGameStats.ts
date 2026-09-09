@@ -7,7 +7,7 @@
  */
 
 import { GameStatsData, GameStatEntry, GameStatCategory } from "@/types/gameStats";
-import { TeamLeaderStats, PlayerLeaderStat } from "@/types/yearRecord";
+import { TeamLeaderStats, PlayerLeaderStat, TeamStatsData, Game } from "@/types/yearRecord";
 
 /**
  * Counts distinct weeks where a player has at least one entry in a given category.
@@ -194,5 +194,68 @@ export function accumulateGameStats(gameStats: GameStatsData): TeamLeaderStats {
     tflLeaders,
     sackLeaders,
     intLeaders,
+  };
+}
+
+/**
+ * Derives team-level stats from per-game player entries and the schedule.
+ *
+ * Offensive yardage (pass/rush/total) is summed from individual player entries.
+ * Points scored/allowed and games played come from the schedule's score strings
+ * (format "teamScore-oppScore"). Defensive yardage (yards allowed) cannot be
+ * derived from individual defensive stats, so those fields remain 0 — callers
+ * should merge with manually-entered values from getTeamStats() when available.
+ */
+export function computeTeamStatsFromGameData(
+  gameStats: GameStatsData,
+  schedule: Game[],
+): TeamStatsData {
+  const allEntries = Object.values(gameStats).flat();
+
+  let passYards = 0;
+  let rushYards = 0;
+
+  for (const entry of allEntries) {
+    if (entry.category === "Passing") {
+      passYards += entry.stats.yards ?? 0;
+    } else if (entry.category === "Rushing") {
+      rushYards += entry.stats.yards ?? 0;
+    }
+  }
+
+  let gamesPlayed = 0;
+  let points = 0;
+  let defPoints = 0;
+
+  for (const game of schedule) {
+    if (
+      !game.opponent ||
+      game.opponent === "BYE" ||
+      game.opponent === "NONE" ||
+      game.result === "N/A" ||
+      game.result === "Bye" ||
+      !game.score
+    ) {
+      continue;
+    }
+
+    const scores = game.score.split("-");
+    if (scores.length === 2) {
+      gamesPlayed++;
+      points += parseInt(scores[0]) || 0;
+      defPoints += parseInt(scores[1]) || 0;
+    }
+  }
+
+  return {
+    gamesPlayed,
+    passYards,
+    rushYards,
+    totalOffense: passYards + rushYards,
+    points,
+    totalDefense: 0,
+    defPassYards: 0,
+    defRushYards: 0,
+    defPoints,
   };
 }

@@ -694,6 +694,9 @@ export const progressRosterForNewSeason = (endedYear: number): void => {
           isRedshirted: false,
           isTransferring: false,
           isDrafted: false,
+          // Carry the recruit's selected archetype onto their roster entry so
+          // choices like "Dual Threat" for a QB persist through season advance.
+          archetype: recruit.archetype,
         }),
       );
 
@@ -717,6 +720,9 @@ export const progressRosterForNewSeason = (endedYear: number): void => {
           isRedshirted: false,
           isTransferring: false,
           isDrafted: false,
+          // Carry the transfer's selected archetype onto their roster entry so
+          // it persists through season advance (same fix as recruits above).
+          archetype: transfer.archetype,
         }),
       );
 
@@ -732,6 +738,80 @@ export const progressRosterForNewSeason = (endedYear: number): void => {
     // The playerStats data will no longer be filtered. It will persist for all players.
   } catch (error) {
     console.error("Error progressing roster for new season:", error);
+  }
+};
+
+/**
+ * Retroactively copies archetypes from saved recruits/transfers onto roster
+ * players that were brought over before the archetype field was carried through
+ * season advance. Matches by normalized name + position, and only fills players
+ * whose archetype is currently empty so existing selections are never
+ * overwritten. Persists the result and returns both the count and an
+ * id->archetype map of the players it changed, so a caller holding its own
+ * in-memory copy can sync state without re-reading storage. Safe to run
+ * repeatedly (idempotent self-heal).
+ */
+export const backfillPlayerArchetypes = (): {
+  updated: number;
+  archetypeById: Record<string, string>;
+} => {
+  try {
+    const players = getPlayers();
+    if (players.length === 0) return { updated: 0, archetypeById: {} };
+
+    const recruits = getAllRecruits();
+    const transfers = getAllTransfers();
+
+    // Normalize for tolerant matching: names can differ by casing/whitespace
+    // between the recruit/transfer entry and the generated roster player.
+    const normalize = (value: string) => value.trim().toLowerCase();
+
+    // Index the archetypes we have by "name|position" so lookups are O(1).
+    // A player originates from either a recruit or a transfer, so one combined
+    // map is enough; if both somehow match, the recruit entry wins (added last).
+    const archetypeByKey = new Map<string, string>();
+    for (const transfer of transfers) {
+      if (transfer.archetype && transfer.playerName && transfer.position) {
+        archetypeByKey.set(
+          `${normalize(transfer.playerName)}|${normalize(transfer.position)}`,
+          transfer.archetype,
+        );
+      }
+    }
+    for (const recruit of recruits) {
+      if (recruit.archetype && recruit.name && recruit.position) {
+        archetypeByKey.set(
+          `${normalize(recruit.name)}|${normalize(recruit.position)}`,
+          recruit.archetype,
+        );
+      }
+    }
+
+    // Keyed by String(id) so callers can match regardless of whether ids were
+    // stored as numbers (season-advance) or strings (CSV/manual add).
+    const archetypeById: Record<string, string> = {};
+    const updatedPlayers = players.map((player) => {
+      // Skip players that already have an archetype — never overwrite a choice.
+      if (player.archetype) return player;
+
+      const match = archetypeByKey.get(
+        `${normalize(player.name)}|${normalize(player.position)}`,
+      );
+      if (!match) return player;
+
+      archetypeById[String(player.id)] = match;
+      return { ...player, archetype: match };
+    });
+
+    const updated = Object.keys(archetypeById).length;
+    if (updated > 0) {
+      setPlayers(updatedPlayers);
+    }
+
+    return { updated, archetypeById };
+  } catch (error) {
+    console.error("Error backfilling player archetypes:", error);
+    return { updated: 0, archetypeById: {} };
   }
 };
 

@@ -80,6 +80,7 @@ import {
 } from "@/types/coaches";
 import { getCoaches, setCoaches } from "@/utils/localStorage";
 import { getCoachProfile } from "@/utils/localStorage";
+import { backfillPlayerArchetypes } from "@/utils/localStorage";
 import { useDynasty } from "@/contexts/DynastyContext";
 import { HeroHeader } from "@/components/ui/HeroHeader";
 import clsx from "clsx";
@@ -318,6 +319,28 @@ const Roster: React.FC = () => {
     };
   });
   const [editingCoach, setEditingCoach] = useState<CoachPosition | null>(null);
+
+  // One-time self-heal: fill archetypes on roster players that were carried over
+  // from recruits/transfers before the archetype field persisted through season
+  // advance. Runs on mount; no-ops (and doesn't re-render) when nothing matches.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only migration; setPlayers is an unstable useLocalStorage setter and must not re-trigger it.
+  useEffect(() => {
+    const { updated, archetypeById } = backfillPlayerArchetypes();
+    if (updated > 0) {
+      // Sync the in-memory hook state to match what backfill wrote to storage,
+      // mapping by id so the component's own Player type is preserved.
+      setPlayers((prev) =>
+        prev.map((player) => {
+          const archetype = archetypeById[String(player.id)];
+          return archetype ? { ...player, archetype } : player;
+        }),
+      );
+      toast.success(
+        `Restored archetypes for ${updated} player${updated === 1 ? "" : "s"}.`,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Extract current team name from coach profile to determine whether a default
