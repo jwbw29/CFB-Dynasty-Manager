@@ -116,6 +116,61 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isOpen, onClose }) => {
       const playerStats: CareerStats = {};
       const allYearRecords = getAllYearRecords();
 
+      // Load origin/departure up front so we can bracket the player's tenure
+      // below and guarantee a row per on-team year even when no stats were
+      // recorded (e.g. seasons the user skipped, or top-N leader caps pushed
+      // him out). Year list reflects membership, not stat presence.
+      const allRecruits = getAllRecruits();
+      const allTransfers = getAllTransfers();
+      const playerRecruit = allRecruits.find((r) => r.name === player.name);
+      const arrivalTransfer = allTransfers.find(
+        (t) =>
+          t.playerName === player.name && t.transferDirection === "From",
+      );
+      const arrivalYear =
+        playerRecruit?.recruitedYear ??
+        arrivalTransfer?.transferYear ??
+        null;
+
+      const departureTransfer = allTransfers.find(
+        (t) =>
+          t.playerName === player.name && t.transferDirection === "To",
+      );
+      let draftedYear: number | null = null;
+      for (const yr of allYearRecords) {
+        const found = yr.playersDrafted?.find(
+          (d) => d.playerName === player.name,
+        );
+        if (found) {
+          draftedYear = found.year;
+          break;
+        }
+      }
+      const departureYear =
+        draftedYear ?? departureTransfer?.transferYear ?? null;
+
+      // Position → primary stat category. Only categories that PlayerCard
+      // renders (Passing/Rushing/Receiving/Defense) are mapped; OL/K/P have no
+      // team-leader pipeline today, so we don't fabricate empty rows for them.
+      const positionToCategory: Record<string, string> = {
+        QB: "Passing",
+        RB: "Rushing",
+        FB: "Rushing",
+        WR: "Receiving",
+        TE: "Receiving",
+        LEDGE: "Defense",
+        REDGE: "Defense",
+        DT: "Defense",
+        SAM: "Defense",
+        MIKE: "Defense",
+        WILL: "Defense",
+        CB: "Defense",
+        FS: "Defense",
+        SS: "Defense",
+      };
+      const primaryCategory: string | null =
+        positionToCategory[player.position] ?? null;
+
       allYearRecords.forEach((yearRecord) => {
         const year = yearRecord.year;
 
@@ -231,6 +286,30 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isOpen, onClose }) => {
         }
       });
 
+      // Backfill placeholder rows for every YearRecord in the player's tenure
+      // that produced no stats. Without this, a season disappears entirely from
+      // the card (year list is derived from Object.keys(careerStats)). Guarded
+      // on arrivalYear so pre-dynasty roster players (no origin data) keep the
+      // old stats-only behavior instead of showing fabricated years.
+      if (arrivalYear !== null && primaryCategory !== null) {
+        allYearRecords.forEach((yearRecord) => {
+          const y = yearRecord.year;
+          if (y < arrivalYear) return;
+          if (departureYear !== null && y > departureYear) return;
+          const hasCategoryRow = playerStats[y]?.some(
+            (s) => s.category === primaryCategory,
+          );
+          if (hasCategoryRow) return;
+          if (!playerStats[y]) playerStats[y] = [];
+          playerStats[y].push({
+            id: `${primaryCategory.toLowerCase()}-${y}`,
+            playerName: player.name,
+            year: y,
+            category: primaryCategory as PlayerStat["category"],
+          });
+        });
+      }
+
       setCareerStats(playerStats);
 
       const awards: Award[] = [];
@@ -245,17 +324,12 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isOpen, onClose }) => {
       });
       setPlayerAwards(awards);
 
-      // Fetch and store the full origin object
-      const allRecruits = getAllRecruits();
-      const playerRecruit = allRecruits.find((r) => r.name === player.name);
+      // Reuse the recruit/transfer lookups already performed above for tenure
+      // bracketing; avoids re-reading localStorage.
       if (playerRecruit) {
         setOriginInfo(playerRecruit);
       } else {
-        const allTransfers = getAllTransfers();
-        const playerTransfer = allTransfers.find(
-          (t) => t.playerName === player.name && t.transferDirection === "From",
-        );
-        setOriginInfo(playerTransfer || null);
+        setOriginInfo(arrivalTransfer || null);
       }
     } catch (error) {
       console.error("Error loading player data:", error);
@@ -615,6 +689,17 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, isOpen, onClose }) => {
                                         ).toFixed(1)
                                       : "0.0";
                                   case "tackles":
+                                    // Rows built from team leaders populate `tackles`
+                                    // directly (solo/assists are never set), so deriving
+                                    // from solo+assists silently returned 0. Prefer the
+                                    // stored total; fall back only for legacy PlayerStat
+                                    // entries where `tackles` was never persisted.
+                                    const tackles = isFullStat
+                                      ? (stat as PlayerStat).tackles
+                                      : (stat as { [key: string]: number })
+                                          .tackles;
+                                    if (typeof tackles === "number")
+                                      return tackles.toString();
                                     const solo = isFullStat
                                       ? (stat as PlayerStat).solo
                                       : (stat as { [key: string]: number })
